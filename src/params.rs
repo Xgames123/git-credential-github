@@ -1,10 +1,17 @@
 use std::collections::HashMap;
-use std::io::{self, BufRead};
+use std::{error::Error, io, io::BufRead, fmt::Display};
+use std::fmt::Formatter;
 
 #[derive(Debug, Clone)]
 pub struct ParamParserError {
     data: String,
 }
+impl Display for ParamParserError{
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        fmt.write_fmt(format_args!("Failed to parse parameter. Data {}", self.data))
+    }
+}
+impl Error for ParamParserError{}
 
 pub struct Params {
     hashmap: HashMap<String, String>,
@@ -22,6 +29,7 @@ impl Params {
         for (i, &character) in s.as_bytes().iter().enumerate() {
             if character == b'=' {
                 self.add((&s[..i]).to_string(), (&s[(i + 1)..]).to_string());
+                return Ok(());
             }
         }
         return Err(ParamParserError {
@@ -48,5 +56,11 @@ impl Params {
             params.add_from_string(&buffer)?;
         }
         return Ok(params);
+    }
+
+    pub fn write_to_sdtout(&self) {
+        for (key, value) in self.hashmap.iter() {
+            println!("{0}={1}", key, value);
+        }
     }
 }

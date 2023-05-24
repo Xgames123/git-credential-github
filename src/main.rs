@@ -1,26 +1,36 @@
-mod clientextentions;
+mod ghauth;
 mod params;
 
-use clap::crate_name;
-use clap::Command;
+use crate::ghauth::AccessTokenPollError;
+use clap::{crate_authors, crate_name, crate_version};
+use clap::ArgAction::SetTrue;
 use params::Params;
+use reqwest::Client;
 
-
-static OAUTH_CLIENT_ID: &str = "0120e057bd645470c1ed";
-static OATUH_CLIENT_SECRET: &str = "18867509d956965542b521a529a79bb883344c90";
-static OAUTH_SCOPE: &str = "repo";
-
-fn main() {
-    let args = Command::new(crate_name!())
-        .author("ldev")
-        .version("1.0.0")
+#[tokio::main]
+async fn main() {
+    let args = clap::Command::new(crate_name!())
+        .author(crate_authors!())
+        .version(crate_version!())
         .about("A simple git credentials manager for github")
-        .subcommand(Command::new("get").about("Gets the stored credentials"))
+        .subcommand(
+            clap::Command::new("get")
+                .about("Gets the stored credentials")
+                .arg(clap::Arg::new("no-prompt").short('n').action(SetTrue)),
+        )
         .get_matches();
 
     match args.subcommand() {
-        Some(("get", _)) => {
-            let params =
+        Some(("get", sub)) => {
+            if !sub.get_flag("no-prompt") {
+                eprintln!("*******************************************************");
+                eprintln!("*                       gh-login                      *");
+                eprintln!("*     A simple git credentials manager for github     *");
+                eprintln!("*******************************************************");
+                eprintln!("NOTE: use --no-prompt to disable this message");
+            }
+
+            let mut params =
                 Params::from_stdin().expect("Failed to read parameters returned by git {}");
 
             match params.get("host".to_string()) {
@@ -53,29 +63,49 @@ fn main() {
                 .get("username".to_string())
                 .expect("No username parameter given by git");
 
-            let repoUri = get_repo_uri(&params).expect("Parameter not given by git");
+            let client = reqwest::Client::new();
+            let access_token = get_access_token_via_device_code(&client).await;
 
-            auth_via_tty(repoUri, &username);
+            params.add(String::from("password"), access_token.access_token);
+
+            params.write_to_sdtout();
         }
         _ => {}
     }
 }
 
-fn auth_via_tty(repo_uri: String, username: &String) {
-    let client = reqwest::Client::new();
-    let deviceCode = get_device_code(&client);
+async fn get_access_token_via_device_code(client: &reqwest::Client) -> ghauth::AccessToken {
+    let device_code = get_device_code(&client).await;
+
+    return loop {
+        break match ghauth::poll_for_access_token(&client, &device_code).await {
+            Ok(token) => token,
+            Err(err) => match err {
+                AccessTokenPollError::DeviceCodeExpired => {
+                    log("Device code expired");
+                    continue;
+                }
+                AccessTokenPollError::Reqwest(error) => {
+                    panic!("{}", error);
+                }
+            },
+        };
+    };
 }
 
-async fn get_device_code(client: &reqwest::Client) -> Result<String, reqwest::Error> {
-    let form_params = [("client_id", OAUTH_CLIENT_ID), ("scope", OAUTH_SCOPE)];
-    let request = client
-        .post("https://github.com/login/device/code")
-        .form(&form_params)
-        .send()
-        .await?;
-    request.error_for_status()?;
+async fn get_device_code(client: &Client) -> ghauth::DeviceCode {
+    log("Getting login code...");
+    let device_code = ghauth::get_device_code(&client)
+        .await
+        .unwrap_or_else(|err| {
+            panic!("Failed to get device code \n Err: {}", err);
+        });
 
-    return Ok("".to_string());
+    eprintln!("gh-login: Go to the link below and type in the code");
+    eprintln!("{}", device_code.verification_uri);
+    eprintln!("code: {}", device_code.user_code);
+
+    return device_code;
 }
 
 fn get_repo_uri(params: &Params) -> Result<String, ParamNotFoundError> {
