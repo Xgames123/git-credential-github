@@ -1,17 +1,20 @@
 use std::collections::HashMap;
-use std::{error::Error, io, io::BufRead, fmt::Display};
 use std::fmt::Formatter;
+use std::{error::Error, fmt::Display, io, io::BufRead};
 
 #[derive(Debug, Clone)]
 pub struct ParamParserError {
     data: String,
 }
-impl Display for ParamParserError{
+impl Display for ParamParserError {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        fmt.write_fmt(format_args!("Failed to parse parameter. Data {}", self.data))
+        fmt.write_fmt(format_args!(
+            "Failed to parse parameter. Data {}",
+            self.data
+        ))
     }
 }
-impl Error for ParamParserError{}
+impl Error for ParamParserError {}
 
 pub struct Params {
     hashmap: HashMap<String, String>,
@@ -28,7 +31,10 @@ impl Params {
     pub fn add_from_string(&mut self, s: &String) -> Result<(), ParamParserError> {
         for (i, &character) in s.as_bytes().iter().enumerate() {
             if character == b'=' {
-                self.add((&s[..i]).to_string(), (&s[(i + 1)..]).to_string());
+                self.add(
+                    (&s[..i]).trim().to_string(),
+                    (&s[(i + 1)..]).trim().to_string(),
+                );
                 return Ok(());
             }
         }
@@ -52,7 +58,6 @@ impl Params {
             if buffer == "" {
                 break;
             }
-
             params.add_from_string(&buffer)?;
         }
         return Ok(params);
@@ -62,5 +67,6 @@ impl Params {
         for (key, value) in self.hashmap.iter() {
             println!("{0}={1}", key, value);
         }
+        println!();
     }
 }

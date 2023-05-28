@@ -1,5 +1,4 @@
-static OAUTH_CLIENT_ID: &str = "0120e057bd645470c1ed";
-//static OAUTH_CLIENT_SECRET: &str = "18867509d956965542b521a529a79bb883344c90";
+static OAUTH_CLIENT_ID: &str = "71c898ad634b388e6614";
 static OAUTH_SCOPE: &str = "repo";
 
 use reqwest::StatusCode;
@@ -16,6 +15,7 @@ pub struct DeviceCode {
     pub expires_in: u64,
     pub interval: u64,
 
+    #[serde(skip)]
     pub time: u64,
 }
 impl DeviceCode {
@@ -32,6 +32,13 @@ pub struct AccessToken {
     pub access_token: String,
     pub token_type: String,
     pub scope: String,
+}
+
+#[derive(Deserialize)]
+pub struct GithubError {
+    pub error: String,
+    pub error_description: String,
+    pub error_uri: String,
 }
 
 pub fn epoch_time() -> u64 {
@@ -53,7 +60,7 @@ impl Display for AccessTokenPollError {
         match &self {
             AccessTokenPollError::DeviceCodeExpired => fmt.write_str("The device code has expired"),
             AccessTokenPollError::Reqwest(err) => {
-                fmt.write_fmt(format_args!("Polling github failed. {err}"))
+                fmt.write_fmt(format_args!("Polling github failed. {}", err))
             }
         }
     }
@@ -88,10 +95,14 @@ pub async fn poll_for_access_token(
             .header("Accept", "application/json");
 
         break match request.send().await {
-            Ok(response) => match response.json().await {
-                Ok(token) => Ok(token),
-                Err(err) => Err(AccessTokenPollError::Reqwest(err)),
-            },
+            Ok(response) => {
+                match response.json().await {
+                    Ok(token) => Ok(token),
+                    Err(_) => {
+                        continue;
+                    } //BADCODE: Github doesn't set a status code so we threat all parser errors as 'authorization_pending'
+                }
+            }
             Err(err) => {
                 if err.status().unwrap_or(StatusCode::OK) == 404 {
                     continue;
