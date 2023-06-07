@@ -1,15 +1,15 @@
+mod credstore;
 mod ghauth;
 mod params;
-mod credstore;
 
 use crate::ghauth::AccessTokenPollError;
 use clap::ArgAction::SetTrue;
 use clap::{crate_authors, crate_name, crate_version};
-use params::Params;
-use reqwest::Client;
-use reqwest::header::Entry;
-use std::string::String;
 use keyring::Error;
+use params::Params;
+use reqwest::header::Entry;
+use reqwest::Client;
+use std::string::String;
 
 #[tokio::main]
 async fn main() {
@@ -18,7 +18,12 @@ async fn main() {
         .version(crate_version!())
         .about("A simple git credentials manager for github")
         .arg(clap::Arg::new("no-prompt").short('p').action(SetTrue))
-        .arg(clap::Arg::new("no-cred").help("If set don't write or read from the credentials store").short('c').action(SetTrue))
+        .arg(
+            clap::Arg::new("no-store")
+                .help("If set don't write or read from the credentials store")
+                .short('c')
+                .action(SetTrue),
+        )
         .subcommand(clap::Command::new("get").about("Gets the stored credentials"))
         .subcommand(
             clap::Command::new("store").about("Stores the credentials into the backing store"),
@@ -59,24 +64,32 @@ async fn main() {
             eprintln!("gh-login: saving credentials");
 
             let username = match params.get(String::from("username")) {
-                None => { eprintln!("no username returned by git"); return;},
-                Some(username) => {username}
+                None => {
+                    eprintln!("no username returned by git");
+                    return;
+                }
+                Some(username) => username,
             };
 
             let password = match params.get(String::from("password")) {
-                None => { eprintln!("no password returned by git"); return;},
-                Some(password) => {password}
+                None => {
+                    eprintln!("no password returned by git");
+                    return;
+                }
+                Some(password) => password,
             };
 
             credstore::store(username, password);
-
         }
 
         Some(("erase", _)) => {
             eprintln!("gh-login: deleting credentials");
 
-            let entry = keyring::Entry::new("gh-login", "github.com").expect("Failed get entry in credentials store");
-            entry.delete_password().expect("Failed to delete access key from credentials store");
+            let entry = keyring::Entry::new("gh-login", "github.com")
+                .expect("Failed get entry in credentials store");
+            entry
+                .delete_password()
+                .expect("Failed to delete access key from credentials store");
         }
 
         Some(("get", _)) => {
@@ -92,28 +105,17 @@ async fn main() {
 
             //let username = get_username_from_repo_path(path);
 
-            if !args.get_flag("no-cred"){
-                let entry = keyring::Entry::new("gh-login", "github.com").expect("Failed get entry in credentials store");
-                match entry.get_password() {
-                    Ok(creds) => {
-                        match parse_creds(&creds) {
-                            None => { },
-                            Some((username, token)) => {
-                                params.add(String::from("username"), username.to_string());
-                                params.add(String::from("password"), token.to_string());
-                                params.write_to_sdtout();
-                                return;
-                            }
-                        };
-                    },
+            if !args.get_flag("no-store") {
+                match credstore::get() {
+                    Ok((username, password)) => {
+                        params.add(String::from("username"), username.to_string());
+                        params.add(String::from("password"), password.to_string());
+                    }
                     Err(err) => {
                         eprintln!("Failed to get password from credentials store. {}", err);
                     }
-                };
-
+                }
             }
-
-
 
             let client = reqwest::Client::new();
             let access_token = get_access_token_via_device_code(&client).await;
@@ -125,16 +127,6 @@ async fn main() {
         _ => {}
     }
 }
-
-fn parse_creds(data: &str) -> Option<(&str, &str)>{
-    for (i, &char) in data.as_bytes().iter().enumerate(){
-        if char == b'/'{
-            return Some((&data[..i], &data[(i+1)..]));
-        }
-    }
-    None
-}
-
 
 async fn get_access_token_via_device_code(client: &reqwest::Client) -> ghauth::AccessToken {
     let device_code = get_device_code(&client).await;
