@@ -61,6 +61,10 @@ async fn main() {
 
     match args.subcommand() {
         Some(("store", _)) => {
+            if args.get_flag("no-store") {
+                return;
+            }
+            
             eprintln!("gh-login: saving credentials");
 
             let username = match params.get(String::from("username")) {
@@ -83,6 +87,11 @@ async fn main() {
         }
 
         Some(("erase", _)) => {
+            
+            if args.get_flag("no-store") {
+                return;
+            }
+            
             eprintln!("gh-login: deleting credentials");
 
             let entry = keyring::Entry::new("gh-login", "github.com")
