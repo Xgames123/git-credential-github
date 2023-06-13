@@ -21,7 +21,6 @@ impl Display for CredsError {
     }
 }
 impl Error for CredsError {}
-
 impl From<keyring::error::Error> for CredsError {
     fn from(err: keyring::Error) -> Self {
         match err {
@@ -37,35 +36,55 @@ impl From<keyring::error::Error> for CredsError {
     }
 }
 
-pub fn store(username: &str, password: &str) {
-    let entry = keyring::Entry::new("gh-login", "github.com")
-        .expect("Failed get entry in credentials store");
-
-    let mut creds = String::new();
-
-    creds.push_str(username);
-    creds.push('/');
-    creds.push_str(password);
-
-    entry
-        .set_password(&creds)
-        .expect("Failed to store access key");
+pub struct CredStore {
+    entry: keyring::Entry,
 }
 
-pub fn get<'a>() -> Result<(&'a str, &'a str), CredsError> {
-    let entry = keyring::Entry::new("gh-login", "github.com")?;
-    let creds : &'a String = entry.get_password()?;
-    return match parse_creds(creds) {
-        None => Err(InvalidData),
-        Some((username, token)) => Ok((username, token)),
-    };
+impl CredStore {
+    pub fn new() -> Result<CredStore, CredsError> {
+        Ok(CredStore {
+            entry: keyring::Entry::new("gh-login", "github.com")?,
+        })
+    }
+
+    pub fn store(self, username: &str, password: &str) -> Result<(), CredsError> {
+        let mut creds = String::new();
+
+        creds.push_str(username);
+        creds.push('/');
+        creds.push_str(password);
+
+        self.entry.set_password(&creds)?;
+
+        Ok(())
+    }
+
+    pub fn delete(self) -> Result<(), CredsError> {
+        self.entry.delete_password()?;
+        Ok(())
+    }
+
+    pub fn get<'a>(self) -> Result<(&'a str, &'a str), CredsError> {
+        let creds: &'a String = self.entry.get_password()?;
+        return match parse_creds(creds) {
+            None => Err(InvalidData),
+            Some((username, token)) => Ok((username, token)),
+        };
+    }
 }
 
-pub fn parse_creds(data: &str) -> Option<(&str, &str)> {
+fn parse_creds(data: &str) -> Option<(&str, &str)> {
     for (i, &char) in data.as_bytes().iter().enumerate() {
         if char == b'/' {
             return Some((&data[..i], &data[(i + 1)..]));
         }
     }
     None
+}
+
+pub fn get() -> Result<(String, String), CredsError> {
+    let credstore = CredStore::new()?;
+    let (username, passwd) = credstore.get()?;
+
+    Ok((username.to_string(), passwd.to_string()))
 }

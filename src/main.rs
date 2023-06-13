@@ -5,9 +5,7 @@ mod params;
 use crate::ghauth::AccessTokenPollError;
 use clap::ArgAction::SetTrue;
 use clap::{crate_authors, crate_name, crate_version};
-use keyring::Error;
 use params::Params;
-use reqwest::header::Entry;
 use reqwest::Client;
 use std::string::String;
 
@@ -59,12 +57,26 @@ async fn main() {
         }
     };
 
+    let use_credstore: bool = !args.get_flag("no-store");
+    let credstore;
+    if use_credstore{
+        match credstore::CredStore::new() {
+            Ok(store) => {
+                credstore = store;
+            }
+            Err(err) => {
+                use_credstore = false;
+                eprintln!("{}", err);
+            }
+        }
+    }
+
     match args.subcommand() {
         Some(("store", _)) => {
             if args.get_flag("no-store") {
                 return;
             }
-            
+
             eprintln!("gh-login: saving credentials");
 
             let username = match params.get(String::from("username")) {
@@ -83,22 +95,22 @@ async fn main() {
                 Some(password) => password,
             };
 
-            credstore::store(username, password);
+            if use_credstore {
+                credstore.store(username, password).unwrap();
+            }
         }
 
         Some(("erase", _)) => {
-            
             if args.get_flag("no-store") {
                 return;
             }
-            
+
             eprintln!("gh-login: deleting credentials");
 
-            let entry = keyring::Entry::new("gh-login", "github.com")
-                .expect("Failed get entry in credentials store");
-            entry
-                .delete_password()
-                .expect("Failed to delete access key from credentials store");
+            if use_credstore {
+                credstore.delete().expect("Failed to delete access key from credentials store");
+            }
+
         }
 
         Some(("get", _)) => {
@@ -114,8 +126,8 @@ async fn main() {
 
             //let username = get_username_from_repo_path(path);
 
-            if !args.get_flag("no-store") {
-                match credstore::get() {
+            if use_credstore {
+                match credstore.get() {
                     Ok((username, password)) => {
                         params.add(String::from("username"), username.to_string());
                         params.add(String::from("password"), password.to_string());
