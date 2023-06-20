@@ -29,8 +29,8 @@ pub fn spawn(helper: &str, operation: &str) -> Result<Child> {
         .ok_or_else(|| InvalidHelper.into())
         .and_then(|split| {
             let cmd = Command::new(&split[0])
-                .arg(operation)
                 .args(&split[1..])
+                .arg(operation)
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .spawn()
