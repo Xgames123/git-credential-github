@@ -28,13 +28,13 @@ pub fn spawn(helper: &str, operation: &str) -> Result<Child> {
     shlex::split(&helpercmd)
         .ok_or_else(|| InvalidHelper.into())
         .and_then(|split| {
-            
             let cmd = Command::new(&split[0])
+                .arg(operation)
                 .args(&split[1..])
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
-            .spawn()
-            .map_err(|err| err.into());
+                .spawn()
+                .map_err(|err| err.into());
 
             cmd
         })
