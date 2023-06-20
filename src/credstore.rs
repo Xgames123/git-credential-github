@@ -1,3 +1,4 @@
+/*
 use crate::credstore::CredsError::InvalidData;
 use std::{error::Error, fmt::Display, fmt::Formatter};
 
@@ -88,3 +89,4 @@ pub fn get() -> Result<(String, String), CredsError> {
 
     Ok((username.to_string(), passwd.to_string()))
 }
+*/

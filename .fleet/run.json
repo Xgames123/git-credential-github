@@ -1,12 +1,6 @@
 {
     "configurations": [
         {
-            "type": "command",
-            "name": "build on wsl",
-            "program": "wsl",
-            "args": [ "$HOME/.cargo/bin/cargo", "build" ],
-        },
-        {
             "type": "cargo",
             "name": "build",
             "cargoArgs": ["build"],

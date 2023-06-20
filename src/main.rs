@@ -1,149 +1,80 @@
-mod credstore;
+mod credhelper;
 mod ghauth;
-mod params;
 
 use crate::ghauth::AccessTokenPollError;
 use clap::ArgAction::SetTrue;
-use clap::{crate_authors, crate_name, crate_version};
-use params::Params;
+use clap::{crate_authors, crate_name, crate_version, Parser, Subcommand};
 use reqwest::Client;
+use std::io::{Read, Write};
+
 use std::string::String;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
+struct Cli {
+    #[arg(short = 'b', long)]
+    //The backing credentails helper. The credentails will be stored here.
+    backing_credhelper: String,
+
+    #[arg(short = 'p', long)]
+    //If set disables the startup prompt
+    no_prompt: bool,
+
+    #[command(subcommand)]
+    operation: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    //Stores the credentials in the backing helper
+    Store,
+    //Deletes the credentials from the backing helper
+    Erase,
+    //Gets the stored credentials
+    Get,
+}
 
 #[tokio::main]
 async fn main() {
-    let args = clap::Command::new(crate_name!())
-        .author(crate_authors!())
-        .version(crate_version!())
-        .about("A simple git credentials manager for github")
-        .arg(clap::Arg::new("no-prompt").short('p').action(SetTrue))
-        .arg(
-            clap::Arg::new("no-store")
-                .help("If set don't write or read from the credentials store")
-                .short('c')
-                .action(SetTrue),
-        )
-        .subcommand(clap::Command::new("get").about("Gets the stored credentials"))
-        .subcommand(
-            clap::Command::new("store").about("Stores the credentials into the backing store"),
-        )
-        .subcommand(clap::Command::new("erase").about("Deletes all the stored credentials"))
-        .get_matches();
+    let cli = Cli::parse();
 
-    let mut params = Params::from_stdin().expect("Failed to read parameters returned by git {}");
-
-    match params.get("host".to_string()) {
-        Some(host) => {
-            if host != "github.com" {
-                eprintln!("host '{}' is not github.com. Exiting...", host);
-                return;
-            }
-        }
-        None => {
-            eprintln!("No host given by git. Exiting...");
-            return;
-        }
-    };
-
-    match params.get("protocol".to_string()) {
-        Some(protocol) => {
-            if protocol != "https" {
-                eprintln!("Unsupported protocol '{}'. Exiting...", protocol);
-                return;
-            }
-        }
-        None => {
-            eprintln!("No protocol given by git. Exiting...");
-            return;
-        }
-    };
-
-    let use_credstore: bool = !args.get_flag("no-store");
-    let credstore;
-    if use_credstore{
-        match credstore::CredStore::new() {
-            Ok(store) => {
-                credstore = store;
-            }
-            Err(err) => {
-                use_credstore = false;
-                eprintln!("{}", err);
-            }
-        }
-    }
-
-    match args.subcommand() {
-        Some(("store", _)) => {
-            if args.get_flag("no-store") {
-                return;
-            }
-
-            eprintln!("gh-login: saving credentials");
-
-            let username = match params.get(String::from("username")) {
-                None => {
-                    eprintln!("no username returned by git");
-                    return;
-                }
-                Some(username) => username,
-            };
-
-            let password = match params.get(String::from("password")) {
-                None => {
-                    eprintln!("no password returned by git");
-                    return;
-                }
-                Some(password) => password,
-            };
-
-            if use_credstore {
-                credstore.store(username, password).unwrap();
-            }
+    match cli.operation {
+        Store => {
+            todo!()
         }
 
-        Some(("erase", _)) => {
-            if args.get_flag("no-store") {
-                return;
-            }
-
-            eprintln!("gh-login: deleting credentials");
-
-            if use_credstore {
-                credstore.delete().expect("Failed to delete access key from credentials store");
-            }
-
+        Erase => {
+            todo!()
         }
 
-        Some(("get", _)) => {
-            if !args.get_flag("no-prompt") {
+        Get => {
+            if !cli.no_prompt {
                 eprintln!("*******************************************************");
                 eprintln!("*                       gh-login                      *");
-                eprintln!("*     A simple git credentials manager for github     *");
+                eprintln!("*     A simple git credentials helper for github      *");
                 eprintln!("*******************************************************");
                 eprintln!("NOTE: use --no-prompt to disable this message");
             }
 
-            //let path = params.get(String::from("path")).expect("path variable not given by git");
+            let process = credhelper::spawn(&cli.backing_credhelper, "get").unwrap();
+            let mut stdout = process.stdout.unwrap();
+            let mut stdin = process.stdin.unwrap();
 
-            //let username = get_username_from_repo_path(path);
+            std::io::copy(&mut std::io::stdin(), &mut stdin)
+                .expect("Error sending data to backing helper");
 
-            if use_credstore {
-                match credstore.get() {
-                    Ok((username, password)) => {
-                        params.add(String::from("username"), username.to_string());
-                        params.add(String::from("password"), password.to_string());
-                    }
-                    Err(err) => {
-                        eprintln!("Failed to get password from credentials store. {}", err);
-                    }
-                }
+            let mut returnedParams = credhelper::params::from_stream(&mut stdout)
+                .expect("Invalid data returned by backing helper");
+
+            if !returnedParams.contains(String::from("password")){
+                let client = reqwest::Client::new();
+                let access_token = get_access_token_via_device_code(&client).await;
+
+                returnedParams.add(String::from("password"), access_token.access_token);
             }
 
-            let client = reqwest::Client::new();
-            let access_token = get_access_token_via_device_code(&client).await;
-
-            //params.add(String::from("username"), username.to_string());
-            params.add(String::from("password"), access_token.access_token);
-            params.write_to_sdtout();
+            returnedParams.write_to_sdtout();
         }
         _ => {}
     }
@@ -183,7 +114,7 @@ async fn get_device_code(client: &Client) -> ghauth::DeviceCode {
     return device_code;
 }
 
-fn get_repo_uri(params: &Params) -> Result<String, ParamNotFoundError> {
+fn get_repo_uri(params: &credhelper::params::Params) -> Result<String, ParamNotFoundError> {
     return match params.get("path".to_string()) {
         Some(path) => Ok("https://github.com/".to_owned() + path),
         None => Err(ParamNotFoundError {
