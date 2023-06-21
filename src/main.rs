@@ -5,7 +5,7 @@ use crate::ghauth::AccessTokenPollError;
 use clap::{Parser, Subcommand};
 use reqwest::Client;
 
-use std::string::String;
+use std::{io::Read, string::String};
 
 #[derive(Parser)]
 #[command(author, version)]
@@ -19,6 +19,10 @@ struct Cli {
     ///If set disables the startup prompt
     #[arg(short = 'p', long)]
     no_prompt: bool,
+
+    ///If set logs everything gh-login is doing to stderr
+    #[arg(short = 'l', long)]
+    log: bool,
 
     #[command(subcommand)]
     operation: Commands,
@@ -56,24 +60,38 @@ async fn main() {
                 eprintln!("NOTE: use --no-prompt to disable this message");
             }
 
-            let process = credhelper::spawn(&cli.backing_helper, "get").unwrap();
-            let mut stdout = process.stdout.unwrap();
-            let mut stdin = process.stdin.unwrap();
+            if cli.log {
+                eprintln!("Reading parameters from stdin");
+            }
+            let params = credhelper::params::from_stdin().expect("Failled to read data from stdin");
 
-            std::io::copy(&mut std::io::stdin(), &mut stdin)
-                .expect("Error sending data to backing helper");
+            if cli.log {
+                eprintln!("Running backing helper '{}'", &cli.backing_helper);
+            }
+            let mut output = credhelper::run(&cli.backing_helper, "get", params)
+                .expect("Failled to run backing helper");
 
-            let mut returned_params = credhelper::params::from_stream(&mut stdout)
-                .expect("Invalid data returned by backing helper");
+            if cli.log {
+                eprintln!("Done running credentials helper '{}'", &cli.backing_helper);
+            }
 
-            if !returned_params.contains(String::from("password")) {
+            if !output.contains(String::from("password")) {
+                if cli.log {
+                    eprintln!("No password returned by helper. Fetching credentails..");
+                }
                 let client = reqwest::Client::new();
                 let access_token = get_access_token_via_device_code(&client).await;
 
-                returned_params.add(String::from("password"), access_token.access_token);
+                output.add(String::from("password"), access_token.access_token);
             }
 
-            returned_params.write_to_sdtout();
+            if cli.log {
+                eprintln!("Done. Writing credentails to stdout");
+            }
+
+            output
+                .write_to_sdtout()
+                .expect("Failled to write to stdout");
         }
     }
 }

@@ -27,11 +27,11 @@ impl Params {
     pub fn add(&mut self, name: String, value: String) {
         self.hashmap.insert(name, value);
     }
-    
+
     pub fn contains(&self, name: String) -> bool {
         self.hashmap.contains_key(&name)
     }
-    
+
     pub fn add_from_string(&mut self, s: &String) -> Result<(), ParamParserError> {
         for (i, &character) in s.as_bytes().iter().enumerate() {
             if character == b'=' {
@@ -47,29 +47,33 @@ impl Params {
         });
     }
 
-    pub fn write_to_sdtout(&self) {
+    pub fn write_to_sdtout(&self) -> std::io::Result<()> {
         let mut stdout = io::stdout().lock();
-        self.write_to(&mut stdout);
+        self.write_to(&mut stdout)?;
+        Ok(())
     }
 
-    pub fn write_to<T: std::io::Write>(&self, stream: &mut T) {
+    pub fn write_to<T: std::io::Write>(&self, stream: &mut T) -> std::io::Result<()> {
         for (key, value) in self.hashmap.iter() {
-            stream.write_fmt(format_args!("{0}={1}", key, value));
+            stream.write_fmt(format_args!("{0}={1}", key, value))?;
         }
-        stream.write_all(b"\n");
+        stream.write_all(b"\n")?;
+        Ok(())
     }
 }
 
-pub fn from_stream<T: std::io::Read>(stream: T) -> Result<Params, ParamParserError> {
+pub fn from_stream<T: std::io::Read>(stream: T) -> Result<Params, Box<dyn std::error::Error>> {
     let mut params = Params {
         hashmap: HashMap::new(),
     };
-    
+
     let mut buf_reader = std::io::BufReader::new(stream);
+    let mut buffer = String::new();
     loop {
-        let mut buffer = String::new();
-        buf_reader.read_line(&mut buffer);
-        if buffer == "" {
+        buffer.clear();
+
+        buf_reader.read_line(&mut buffer)?;
+        if buffer.trim().is_empty() {
             break;
         }
         params.add_from_string(&buffer)?;
@@ -77,9 +81,7 @@ pub fn from_stream<T: std::io::Read>(stream: T) -> Result<Params, ParamParserErr
     return Ok(params);
 }
 
-
-
-pub fn from_stdin() -> Result<Params, ParamParserError> {
+pub fn from_stdin() -> Result<Params, Box<dyn std::error::Error>> {
     let mut stdin = io::stdin().lock();
     from_stream(&mut stdin)
 }

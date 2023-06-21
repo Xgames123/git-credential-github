@@ -39,3 +39,17 @@ pub fn spawn(helper: &str, operation: &str) -> Result<Child> {
             cmd
         })
 }
+
+pub fn run(helper: &str, operation: &str, params: Params) -> Result<params::Params> {
+    let process = spawn(helper, operation)?;
+    eprintln!("Opening stdin of helper");
+    let mut stdin = process.stdin.unwrap();
+    eprintln!("Writing to stdin of helper");
+    params.write_to(&mut stdin)?;
+
+    eprintln!("Opening to stdout of helper");
+    let stdout = process.stdout.unwrap();
+    let output = params::from_stream(stdout)?;
+    eprintln!("Parsing stdout of helper");
+    Ok(output)
+}
