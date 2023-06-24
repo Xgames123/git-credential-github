@@ -6,13 +6,16 @@ use clap::{Parser, Subcommand};
 use reqwest::Client;
 
 use std::{io::Read, string::String};
+use std::io::stdin;
+
+use log::*;
 
 #[derive(Parser)]
 #[command(author, version)]
 #[command(propagate_version = true)]
 #[command(about = "A simple git credentials helper for github", long_about = None)]
 struct Cli {
-    ///The backing credentails helper. The credentails will be stored here.
+    ///The backing credentials helper. The credentials will be stored here.
     #[arg(short = 'b', long)]
     backing_helper: String,
 
@@ -20,9 +23,9 @@ struct Cli {
     #[arg(short = 'p', long)]
     no_prompt: bool,
 
-    ///If set logs everything gh-login is doing to stderr
-    #[arg(short = 'l', long)]
-    log: bool,
+    /// Verbosity of the logging
+    #[arg(short = 'v', long, default_value="0")]
+    verbose: usize,
 
     #[command(subcommand)]
     operation: Commands,
@@ -42,13 +45,48 @@ enum Commands {
 async fn main() {
     let cli = Cli::parse();
 
+    stderrlog::new()
+        .module(module_path!())
+        .verbosity(cli.verbose)
+        .init()
+        .unwrap();
+
+
     match cli.operation {
         Commands::Store => {
-            todo!()
+            debug!("Storing credentials");
+
+            let params = credhelper::params::from_stdin().expect("Failed to read data from stdin");
+
+            debug!("Input params: '{}'", params);
+            debug!("Running backing helper '{}'", &cli.backing_helper);
+
+            let output = credhelper::run(&cli.backing_helper, "store", params)
+                .expect("Failed to run backing helper");
+
+            debug!("Done. Writing credentials to stdout");
+            debug!("Output params: '{}'", output);
+
+            output.write_to_sdtout().expect("Failed to write to stdout");
         }
 
         Commands::Erase => {
-            todo!()
+            debug!("Erasing credentials");
+
+            let params = credhelper::params::from_stdin().expect("Failed to read data from stdin");
+
+            debug!("Input params: '{}'", params);
+            debug!("Running backing helper '{}'", &cli.backing_helper);
+
+            let output = credhelper::run(&cli.backing_helper, "erase", params)
+                .expect("Failed to run backing helper");
+
+
+            debug!("Done. Writing credentials to stdout");
+            debug!("Output params: '{}'", output);
+
+
+            output.write_to_sdtout().expect("Failed to write to stdout");
         }
 
         Commands::Get => {
@@ -60,38 +98,36 @@ async fn main() {
                 eprintln!("NOTE: use --no-prompt to disable this message");
             }
 
-            if cli.log {
-                eprintln!("Reading parameters from stdin");
-            }
+            debug!("Reading parameters from stdin");
+
             let params = credhelper::params::from_stdin().expect("Failled to read data from stdin");
 
-            if cli.log {
-                eprintln!("Running backing helper '{}'", &cli.backing_helper);
-            }
+            debug!("Input params: '{}'", params);
+            debug!("Running backing helper '{}'", &cli.backing_helper);
+
             let mut output = credhelper::run(&cli.backing_helper, "get", params)
                 .expect("Failled to run backing helper");
 
-            if cli.log {
-                eprintln!("Done running credentials helper '{}'", &cli.backing_helper);
-            }
+
+            debug!("Done running credentials helper '{}'", &cli.backing_helper);
+
 
             if !output.contains(String::from("password")) {
-                if cli.log {
-                    eprintln!("No password returned by helper. Fetching credentails..");
-                }
+                debug!("No password returned by helper. Fetching credentials..");
+
                 let client = reqwest::Client::new();
                 let access_token = get_access_token_via_device_code(&client).await;
 
                 output.add(String::from("password"), access_token.access_token);
             }
 
-            if cli.log {
-                eprintln!("Done. Writing credentails to stdout");
-            }
+            debug!("Output params: '{}'", output);
+            debug!("Done. Writing credentials to stdout");
+
 
             output
                 .write_to_sdtout()
-                .expect("Failled to write to stdout");
+                .expect("Failed to write to stdout");
         }
     }
 }

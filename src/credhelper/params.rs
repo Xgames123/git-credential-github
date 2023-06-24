@@ -1,6 +1,7 @@
 use std::collections::HashMap;
-use std::fmt::Formatter;
-use std::{error::Error, fmt::Display, io, io::BufRead};
+use std::fmt::{Debug, Formatter};
+use std::{error::Error, fmt::Display};
+use std::io::{Read, BufRead, BufReader};
 
 #[derive(Debug, Clone)]
 pub struct ParamParserError {
@@ -19,6 +20,13 @@ impl Error for ParamParserError {}
 pub struct Params {
     hashmap: HashMap<String, String>,
 }
+impl Display for Params{
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        self.hashmap.fmt(fmt)
+    }
+}
+
+
 impl Params {
     pub fn get(&self, key: String) -> Option<&String> {
         return self.hashmap.get(&key);
@@ -48,7 +56,7 @@ impl Params {
     }
 
     pub fn write_to_sdtout(&self) -> std::io::Result<()> {
-        let mut stdout = io::stdout().lock();
+        let mut stdout = std::io::stdout().lock();
         self.write_to(&mut stdout)?;
         Ok(())
     }
@@ -62,12 +70,12 @@ impl Params {
     }
 }
 
-pub fn from_stream<T: std::io::Read>(stream: T) -> Result<Params, Box<dyn std::error::Error>> {
+pub fn from_stream<T: Read>(stream: T) -> Result<Params, Box<dyn Error>> {
     let mut params = Params {
         hashmap: HashMap::new(),
     };
 
-    let mut buf_reader = std::io::BufReader::new(stream);
+    let mut buf_reader = BufReader::new(stream);
     let mut buffer = String::new();
     loop {
         buffer.clear();
@@ -81,7 +89,7 @@ pub fn from_stream<T: std::io::Read>(stream: T) -> Result<Params, Box<dyn std::e
     return Ok(params);
 }
 
-pub fn from_stdin() -> Result<Params, Box<dyn std::error::Error>> {
-    let mut stdin = io::stdin().lock();
+pub fn from_stdin() -> Result<Params, Box<dyn Error>> {
+    let mut stdin = std::io::stdin().lock();
     from_stream(&mut stdin)
 }

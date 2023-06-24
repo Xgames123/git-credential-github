@@ -2,7 +2,10 @@ pub mod params;
 
 use params::Params;
 use std::fmt;
+use std::io::{Read, Write};
 use std::process::{Child, Command, Stdio};
+
+use log::{debug};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -28,28 +31,35 @@ pub fn spawn(helper: &str, operation: &str) -> Result<Child> {
     shlex::split(&helpercmd)
         .ok_or_else(|| InvalidHelper.into())
         .and_then(|split| {
-            let cmd = Command::new(&split[0])
+
+            let program_name = split[0];
+
+            let cmd = Command::new(&program_name)
                 .args(&split[1..])
                 .arg(operation)
                 .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn()
+                .stdout(Stdio::piped());
+
+            debug!("{}", cmd);
+
+            let process = cmd.spawn()
                 .map_err(|err| err.into());
 
-            cmd
+
+
+            process
         })
 }
 
-pub fn run(helper: &str, operation: &str, params: Params) -> Result<params::Params> {
-    let process = spawn(helper, operation)?;
-    eprintln!("Opening stdin of helper");
-    let mut stdin = process.stdin.unwrap();
-    eprintln!("Writing to stdin of helper");
+pub fn run(helper: &str, operation: &str, params: Params) -> Result<Params> {
+    let mut process = spawn(helper, operation)?;
+    let mut stdin = process.stdin.take().unwrap();
     params.write_to(&mut stdin)?;
+    drop(stdin);
+    process.wait()?;
 
-    eprintln!("Opening to stdout of helper");
-    let stdout = process.stdout.unwrap();
-    let output = params::from_stream(stdout)?;
-    eprintln!("Parsing stdout of helper");
-    Ok(output)
+    let mut stdout = process.stdout.take().unwrap();
+
+    let output_params = params::from_stream(&mut stdout)?;
+    Ok(output_params)
 }
