@@ -3,7 +3,7 @@ static OAUTH_SCOPE: &str = "repo";
 
 use reqwest::StatusCode;
 use serde::Deserialize;
-use std::fmt::{format, Formatter};
+use std::fmt::{Formatter};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{error::Error, fmt, fmt::Display, thread::sleep};
 
@@ -23,7 +23,7 @@ impl DeviceCode {
         if (epoch_time() - self.time) >= self.expires_in {
             return true;
         }
-        return false;
+        false
     }
 }
 
@@ -47,7 +47,7 @@ pub fn epoch_time() -> u64 {
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards?????");
 
-    return since_the_epoch.as_secs();
+    since_the_epoch.as_secs()
 }
 
 #[derive(Debug)]
@@ -56,7 +56,7 @@ pub enum AccessTokenPollError {
     Reqwest(reqwest::Error),
 }
 impl Display for AccessTokenPollError {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match &self {
             AccessTokenPollError::DeviceCodeExpired => fmt.write_str("The device code has expired"),
             AccessTokenPollError::Reqwest(err) => {
@@ -82,7 +82,7 @@ pub async fn poll_for_access_token(
         ),
     ];
 
-    return loop {
+    loop {
         if device_code.expired() {
             return Err(AccessTokenPollError::DeviceCodeExpired);
         }
@@ -111,7 +111,7 @@ pub async fn poll_for_access_token(
                 Err(AccessTokenPollError::Reqwest(err))
             }
         };
-    };
+    }
 }
 
 pub async fn get_device_code(client: &reqwest::Client) -> Result<DeviceCode, reqwest::Error> {
@@ -127,5 +127,5 @@ pub async fn get_device_code(client: &reqwest::Client) -> Result<DeviceCode, req
 
     device_code.time = epoch_time();
 
-    return Ok(device_code);
+    Ok(device_code)
 }

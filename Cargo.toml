@@ -2,8 +2,14 @@
 name = "gh-login"
 authors = ["ldev"]
 version = "0.1.0"
+license-file="LICENSE.md"
 edition = "2021"
+description=""
 homepage="https://github.com/Xgames123/gh-login"
+
+[[bin]]
+name = "credential-gh-login"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

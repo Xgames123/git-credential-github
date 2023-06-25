@@ -1,0 +1,34 @@
+pkgver=0.1.0
+
+pkgname=gh-login
+pkgdesc="A simple git credentials helper for github"
+license=(MIT)
+url="https://github.com/Xgames123/gh-login"
+
+binname=credential-$pkgname
+source=("$pkgname-$pkgver.tar.gz::https://github.com/Xgames123/$pkgname/archive/$pkgver.tar.gz")
+makedepends=(
+cargo
+)
+
+
+prepare() {
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+}
+
+
+build() {
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --frozen --release --all-features
+}
+
+check() {
+    export RUSTUP_TOOLCHAIN=stable
+    cargo test --frozen --all-features
+}
+
+package() {
+    install -Dm0755 -t "$pkgdir/bin/" "target/release/$binname"
+}

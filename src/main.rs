@@ -1,12 +1,11 @@
-mod credhelper;
-mod ghauth;
+pub mod credhelper;
+pub mod ghauth;
 
 use crate::ghauth::AccessTokenPollError;
 use clap::{Parser, Subcommand};
 use reqwest::Client;
 
-use std::{io::Read, string::String};
-use std::io::stdin;
+use std::string::String;
 
 use log::*;
 
@@ -100,22 +99,21 @@ async fn main() {
 
             debug!("Reading parameters from stdin");
 
-            let params = credhelper::params::from_stdin().expect("Failled to read data from stdin");
+            let params = credhelper::params::from_stdin().expect("Failed to read data from stdin");
 
             debug!("Input params: '{}'", params);
             debug!("Running backing helper '{}'", &cli.backing_helper);
 
             let mut output = credhelper::run(&cli.backing_helper, "get", params)
-                .expect("Failled to run backing helper");
+                .expect("Failed to run backing helper");
 
 
-            debug!("Done running credentials helper '{}'", &cli.backing_helper);
+            debug!("Done running credentials helper '{}' output: {}", &cli.backing_helper, output);
 
-
-            if !output.contains(String::from("password")) {
+            if !output.contains("password") {
                 debug!("No password returned by helper. Fetching credentials..");
 
-                let client = reqwest::Client::new();
+                let client = Client::new();
                 let access_token = get_access_token_via_device_code(&client).await;
 
                 output.add(String::from("password"), access_token.access_token);
@@ -132,11 +130,11 @@ async fn main() {
     }
 }
 
-async fn get_access_token_via_device_code(client: &reqwest::Client) -> ghauth::AccessToken {
-    let device_code = get_device_code(&client).await;
+async fn get_access_token_via_device_code(client: &Client) -> ghauth::AccessToken {
+    let device_code = get_device_code(client).await;
 
-    return loop {
-        break match ghauth::poll_for_access_token(&client, &device_code).await {
+    loop {
+        break match ghauth::poll_for_access_token(client, &device_code).await {
             Ok(token) => token,
             Err(err) => match err {
                 AccessTokenPollError::DeviceCodeExpired => {
@@ -148,12 +146,12 @@ async fn get_access_token_via_device_code(client: &reqwest::Client) -> ghauth::A
                 }
             },
         };
-    };
+    }
 }
 
 async fn get_device_code(client: &Client) -> ghauth::DeviceCode {
     eprintln!("Getting login code...");
-    let device_code = ghauth::get_device_code(&client)
+    let device_code = ghauth::get_device_code(client)
         .await
         .unwrap_or_else(|err| {
             panic!("Failed to get device code \n Err: {}", err);
@@ -163,10 +161,10 @@ async fn get_device_code(client: &Client) -> ghauth::DeviceCode {
     eprintln!("{}", device_code.verification_uri);
     eprintln!("code: {}", device_code.user_code);
 
-    return device_code;
+    device_code
 }
 
 #[derive(Debug, Clone)]
-struct ParamNotFoundError {
+pub struct ParamNotFoundError {
     pub param: String,
 }

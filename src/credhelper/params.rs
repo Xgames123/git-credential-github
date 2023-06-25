@@ -28,31 +28,31 @@ impl Display for Params{
 
 
 impl Params {
-    pub fn get(&self, key: String) -> Option<&String> {
-        return self.hashmap.get(&key);
+    pub fn get(&self, name: &str) -> Option<&String> {
+        return self.hashmap.get(name);
     }
 
     pub fn add(&mut self, name: String, value: String) {
         self.hashmap.insert(name, value);
     }
 
-    pub fn contains(&self, name: String) -> bool {
-        self.hashmap.contains_key(&name)
+    pub fn contains(&self, name: &str) -> bool {
+        self.hashmap.contains_key(name)
     }
 
     pub fn add_from_string(&mut self, s: &String) -> Result<(), ParamParserError> {
         for (i, &character) in s.as_bytes().iter().enumerate() {
             if character == b'=' {
                 self.add(
-                    (&s[..i]).trim().to_string(),
-                    (&s[(i + 1)..]).trim().to_string(),
+                    (s[..i]).trim().to_string(),
+                    (s[(i + 1)..]).trim().to_string(),
                 );
                 return Ok(());
             }
         }
-        return Err(ParamParserError {
+        Err(ParamParserError {
             data: s.to_string(),
-        });
+        })
     }
 
     pub fn write_to_sdtout(&self) -> std::io::Result<()> {
@@ -63,9 +63,9 @@ impl Params {
 
     pub fn write_to<T: std::io::Write>(&self, stream: &mut T) -> std::io::Result<()> {
         for (key, value) in self.hashmap.iter() {
-            stream.write_fmt(format_args!("{0}={1}", key, value))?;
+            stream.write_fmt(format_args!("{0}={1}\n", key, value))?;
         }
-        stream.write_all(b"\n")?;
+        stream.write_all(b"\n\n")?;
         Ok(())
     }
 }
@@ -81,12 +81,13 @@ pub fn from_stream<T: Read>(stream: T) -> Result<Params, Box<dyn Error>> {
         buffer.clear();
 
         buf_reader.read_line(&mut buffer)?;
+
         if buffer.trim().is_empty() {
             break;
         }
         params.add_from_string(&buffer)?;
     }
-    return Ok(params);
+    Ok(params)
 }
 
 pub fn from_stdin() -> Result<Params, Box<dyn Error>> {
