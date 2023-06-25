@@ -1,0 +1,6 @@
+# This file is so that my website can display more info about the project
+version=1
+
+icon = "gh-login-logo_200px.png"
+platforms=["linux"]
+category = "tiny"
