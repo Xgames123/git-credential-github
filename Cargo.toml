@@ -4,7 +4,7 @@ authors = ["ldev"]
 version = "0.1.0"
 license-file="LICENSE.md"
 edition = "2021"
-description=""
+description="A simple git credentials helper for github"
 homepage="https://github.com/Xgames123/gh-login"
 
 [[bin]]
