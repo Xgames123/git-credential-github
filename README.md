@@ -1,4 +1,3 @@
-# gh-login
 <p align="center">
   <img src="https://github.com/Xgames123/gh-login/blob/main/gh-login-logo_200px_transparent.png?raw=true" alt="gh-login-logo"/>
 </p>
