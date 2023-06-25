@@ -8,7 +8,7 @@ description=""
 homepage="https://github.com/Xgames123/gh-login"
 
 [[bin]]
-name = "credential-gh-login"
+name = "git-credential-gh-login"
 path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

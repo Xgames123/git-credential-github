@@ -14,7 +14,7 @@ echo "target: $TARGET"
 CARCH=$(echo $TARGET | grep -o "^[^-]*")
 builddir=/tmp
 fullbuilddir=$builddir/gh-login
-binname=credential-$pkgname
+binname=git-credential-$pkgname
 
 debarch=$CARCH
 if [ "$CARCH" = "x86_64" ]; then

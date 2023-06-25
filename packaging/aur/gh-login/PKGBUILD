@@ -5,7 +5,7 @@ pkgdesc="A simple git credentials helper for github"
 license=(MIT)
 url="https://github.com/Xgames123/gh-login"
 
-binname=credential-$pkgname
+binname=git-credential-$pkgname
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Xgames123/$pkgname/archive/$pkgver.tar.gz")
 makedepends=(
 cargo
