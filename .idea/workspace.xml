@@ -7,11 +7,7 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e4c2a1e2-cd29-476a-8567-d5eee7d39858" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packaging/aur/gh-login/PKGBUILD" beforeDir="false" afterPath="$PROJECT_DIR$/packaging/aur/gh-login/PKGBUILD" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packaging/debian/pack.sh" beforeDir="false" afterPath="$PROJECT_DIR$/packaging/debian/pack.sh" afterDir="false" />
-    </list>
+    <list default="true" id="e4c2a1e2-cd29-476a-8567-d5eee7d39858" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
