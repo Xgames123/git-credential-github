@@ -6,6 +6,8 @@ A simple git credentials manager for GitHub
 It authenticates to GitHub and uses a backing credential helper, so you can use normal git credential helpers.
 
 ## TODO
+* Make the 'https://github.com/login/device' link a real link
+* Make an enviroment variable to set the backing helper. eg GHLOGIN_BACKINGHELPER
 * Support Archlinux (aur)
 * Support Windows
 
