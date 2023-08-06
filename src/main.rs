@@ -5,9 +5,9 @@ use crate::ghauth::AccessTokenPollError;
 use clap::{Parser, Subcommand};
 use reqwest::Client;
 
-use std::string::String;
-
 use log::*;
+use std::process::{Child, Command, Stdio};
+use std::string::String;
 
 #[derive(Parser)]
 #[command(author, version)]
@@ -15,7 +15,7 @@ use log::*;
 #[command(about = "A simple git credentials helper for github", long_about = None)]
 struct Cli {
     ///The backing credentials helper. The credentials will be stored here.
-    #[arg(short = 'b', long)]
+    #[arg(short = 'b', long, default_value = "")]
     backing_helper: String,
 
     ///If set disables the startup prompt
@@ -23,7 +23,7 @@ struct Cli {
     no_prompt: bool,
 
     /// Verbosity of the logging
-    #[arg(short = 'v', long, default_value="0")]
+    #[arg(short = 'v', long, default_value = "0")]
     verbose: usize,
 
     #[command(subcommand)]
@@ -50,6 +50,16 @@ async fn main() {
         .init()
         .unwrap();
 
+    let mut backing_helper: String = cli.backing_helper;
+    if backing_helper == "" {
+        backing_helper = match std::env::var("GHLOGIN_BACKINGHELPER").ok() {
+            Some(helper) => String::from(helper),
+            None => String::new(),
+        }
+    }
+    if backing_helper == "" {
+        error!("No backing helper set.\nUse the -b option or the GHLOGIN_BACKINGHELPER enviroment varible to set one");
+    }
 
     match cli.operation {
         Commands::Store => {
@@ -58,9 +68,9 @@ async fn main() {
             let params = credhelper::params::from_stdin().expect("Failed to read data from stdin");
 
             debug!("Input params: '{}'", params);
-            debug!("Running backing helper '{}'", &cli.backing_helper);
+            debug!("Running backing helper '{}'", &backing_helper);
 
-            let output = credhelper::run(&cli.backing_helper, "store", params)
+            let output = credhelper::run(&backing_helper, "store", params)
                 .expect("Failed to run backing helper");
 
             debug!("Done. Writing credentials to stdout");
@@ -75,15 +85,13 @@ async fn main() {
             let params = credhelper::params::from_stdin().expect("Failed to read data from stdin");
 
             debug!("Input params: '{}'", params);
-            debug!("Running backing helper '{}'", &cli.backing_helper);
+            debug!("Running backing helper '{}'", &backing_helper);
 
-            let output = credhelper::run(&cli.backing_helper, "erase", params)
+            let output = credhelper::run(&backing_helper, "erase", params)
                 .expect("Failed to run backing helper");
-
 
             debug!("Done. Writing credentials to stdout");
             debug!("Output params: '{}'", output);
-
 
             output.write_to_sdtout().expect("Failed to write to stdout");
         }
@@ -102,13 +110,15 @@ async fn main() {
             let params = credhelper::params::from_stdin().expect("Failed to read data from stdin");
 
             debug!("Input params: '{}'", params);
-            debug!("Running backing helper '{}'", &cli.backing_helper);
+            debug!("Running backing helper '{}'", &backing_helper);
 
-            let mut output = credhelper::run(&cli.backing_helper, "get", params)
+            let mut output = credhelper::run(&backing_helper, "get", params)
                 .expect("Failed to run backing helper");
 
-
-            debug!("Done running credentials helper '{}' output: {}", &cli.backing_helper, output);
+            debug!(
+                "Done running credentials helper '{}' output: {}",
+                &backing_helper, output
+            );
 
             if !output.contains("password") {
                 debug!("No password returned by helper. Fetching credentials..");
@@ -122,12 +132,20 @@ async fn main() {
             debug!("Output params: '{}'", output);
             debug!("Done. Writing credentials to stdout");
 
-
-            output
-                .write_to_sdtout()
-                .expect("Failed to write to stdout");
+            output.write_to_sdtout().expect("Failed to write to stdout");
         }
     }
+}
+
+fn try_copy_clipboard() -> Result<()> {
+    let command = Command::new("wl-copy").stdin(Stdio::piped());
+
+    let mut stdin = command.stdin.take().unwrap();
+    stdin.drop(stdin);
+
+    let status = command.status()?;
+
+    if !status.success() {}
 }
 
 async fn get_access_token_via_device_code(client: &Client) -> ghauth::AccessToken {
@@ -151,16 +169,14 @@ async fn get_access_token_via_device_code(client: &Client) -> ghauth::AccessToke
 
 async fn get_device_code(client: &Client) -> ghauth::DeviceCode {
     eprintln!("Getting login code...");
-    let device_code = ghauth::get_device_code(client)
-        .await
-        .unwrap_or_else(|err| {
-            panic!("Failed to get device code \n Err: {}", err);
-        });
+    let device_code = ghauth::get_device_code(client).await.unwrap_or_else(|err| {
+        panic!("Failed to get device code \n Err: {}", err);
+    });
 
-    eprintln!("gh-login: Go to the link below and type in the code");
+    eprintln!("gh-login: Go to the link below and enter in the device code");
     eprintln!("{}", device_code.verification_uri);
-    eprintln!("code: {}", device_code.user_code);
-
+    eprintln!("device code: {}", device_code.user_code);
+    try_copy_clipboard(device_code.user_code);
     device_code
 }
 

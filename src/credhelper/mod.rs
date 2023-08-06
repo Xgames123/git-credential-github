@@ -4,7 +4,7 @@ use params::Params;
 use std::fmt;
 use std::process::{Child, Command, Stdio};
 
-use log::{debug};
+use log::debug;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -30,7 +30,6 @@ pub fn spawn(helper: &str, operation: &str) -> Result<Child> {
     shlex::split(&helpercmd)
         .ok_or_else(|| InvalidHelper.into())
         .and_then(|split| {
-
             let mut cmd = Command::new(&split[0]);
             cmd.args(&split[1..])
                 .arg(operation)
@@ -39,8 +38,7 @@ pub fn spawn(helper: &str, operation: &str) -> Result<Child> {
 
             debug!("Running command {:?}", &cmd);
 
-            cmd.spawn()
-                .map_err(|err| err.into())
+            cmd.spawn().map_err(|err| err.into())
         })
 }
 
