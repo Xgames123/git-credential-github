@@ -1,40 +1,50 @@
 <p align="center">
   <img src="https://github.com/Xgames123/gh-login/blob/main/gh-login-logo_200px_transparent.png?raw=true" alt="gh-login-logo"/>
 </p>
-A simple git credentials manager for GitHub
+A simple git [credentials helper](https://git-scm.com/docs/gitcredentials) for GitHub
+![Screenshot of gh-login](sample.png)
 
-It authenticates to GitHub and uses a backing credential helper, so you can use normal git credential helpers.
-
+# Features
+1. It relays to another credential helper. So you can use standard credential helpers with GitHub
+2. Its way less bloated than [Git Credential Manager](https://github.blog/2022-04-07-git-credential-manager-authentication-for-everyone/)
 ## TODO
-* Make the 'https://github.com/login/device' link a real link
-* Make an enviroment variable to set the backing helper. eg GHLOGIN_BACKINGHELPER
-* Support Archlinux (aur)
+* Make the 'https://github.com/login/device' auto open using xdg-open
+* Auto copy device code to clipboard using wl-clipboard
+* Make an en environment variable to set the backing helper. eg GHLOGIN_BACKINGHELPER
+* Support Arch Linux (AUR)
 * Support Windows
 
-## Install
-1. Install gh-login for your os (see below)
-2. Set gh-login as your git credential helper
-   
-    ```git config --global credential.https://github.com.helper 'gh-login -b cache'```
-   
-    You can change cache to any credential helper you like
+# Install
 
-    If that gives an error you can also manually edit $HOME/.gitconfig
+## Debian/Ubuntu
+1. Download latest release and run ```dpkg -i gh-login.deb``` NOTE: Replace ```gh-login.deb``` with the file you just downloaded
+2. Go to [configuring](#Configuring)
 
-### Arch linux
+## Arch linux
 Install gh-login form the AUR
 ```bash
 git clone aur.archlinux.org/gh-login.git
 cd gh-login
 makepkg --syncdeps --install
 ```
+Or use an aur helper
+```bash
+yay -S gh-login
+```
+Go to [configuring](#Configuring)
 
-### Debian/Ubuntu
-Download latest release and run ```dpkg -i gh-login.deb```
-Replace ```gh-login.deb``` with the file you just downloaded
+# Configuring
+Set gh-login as your git credential helper
+   
+```git config --global credential.https://github.com.helper 'gh-login -b cache'```
+   
+You can change cache to any credential helper you like
+
+NOTE: You can also manually edit $HOME/.gitconfig
 
 
-## Bug or Error
+
+# Bug or Error
 If you find a bug, get an error or the docs are wrong.
 * [Create an issue](https://github.com/Xgames123/gh-login/issues/new/)
 * Message me <[ldev@ldev.eu.org](mailto://ldev@ldev.eu.org)>
