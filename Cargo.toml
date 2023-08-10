@@ -7,6 +7,9 @@ edition = "2021"
 description=""
 homepage="https://github.com/Xgames123/gh-login"
 
+[target.armv7-unknown-linux-gnueabihf]
+linker = "armv7-rpi2-linux-gnueabihf-gcc"
+
 [[bin]]
 name = "git-credential-gh-login"
 path = "src/main.rs"

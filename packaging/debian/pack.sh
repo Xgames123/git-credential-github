@@ -21,7 +21,7 @@ if [ "$CARCH" = "x86_64" ]; then
   debarch="amd64"
 fi
 if [ "$CARCH" = "armv7" ]; then
-  debarch="arm"
+  debarch="armhf"
 fi
 
 
@@ -41,12 +41,11 @@ echo "Homepage: $url" >> $controlfile
 echo "Section: vcs" >> $controlfile
 
 # Build rust app
-export RUSTUP_TOOLCHAIN=stable
-cargo fetch --locked --target $TARGET
+export PKG_CONFIG_SYSROOT_DIR=/
 
 export RUSTUP_TOOLCHAIN=stable
 export CARGO_TARGET_DIR=target
-cargo build --frozen --release --all-features
+cargo build --target $TARGET --release --all-features
 
 export RUSTUP_TOOLCHAIN=stable
 cargo test --frozen --all-features
