@@ -1,12 +1,14 @@
 <p align="center">
   <img src="https://github.com/Xgames123/gh-login/blob/main/gh-login-logo_200px_transparent.png?raw=true" alt="gh-login-logo"/>
 </p>
+
 A simple git [credentials helper](https://git-scm.com/docs/gitcredentials) for GitHub
+
 ![Screenshot of gh-login](sample.png)
 
 # Features
 1. It relays to another credential helper. So you can use standard credential helpers with GitHub
-2. Its way less bloated than [Git Credential Manager](https://github.blog/2022-04-07-git-credential-manager-authentication-for-everyone/)
+2. Its way less bloated than [Git Credential Manager](https://github.blog/2022-04-07-git-credential-manager-authentication-for-everyone)
 ## TODO
 * Make the 'https://github.com/login/device' auto open using xdg-open
 * Auto copy device code to clipboard using wl-clipboard
