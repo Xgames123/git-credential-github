@@ -38,11 +38,10 @@ Go to [configuring](#Configuring)
 # Configuring
 Set gh-login as your git credential helper
    
-```git config --global credential.https://github.com.helper 'gh-login -b cache'```
+```git config --global credential.https://github.com.helper "gh-login -b 'cache --timeout=86400'"```
    
-You can change cache to any credential helper you like
+This will set 'cache' with a timeout of 1 day (86400 seconds) as the backing helper. See https://git-scm.com/docs/gitcredentials
 
-NOTE: You can also manually edit $HOME/.gitconfig
 
 
 
