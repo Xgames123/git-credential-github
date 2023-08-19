@@ -6,6 +6,7 @@ use clap::{Parser, Subcommand};
 use reqwest::Client;
 
 use log::*;
+use std::io::Write;
 use std::process::{Child, Command, Stdio};
 use std::string::String;
 
@@ -137,15 +138,23 @@ async fn main() {
     }
 }
 
-fn try_copy_clipboard() -> Result<()> {
-    let command = Command::new("wl-copy").stdin(Stdio::piped());
+fn copy_clipboard(data: String) -> Result<(), String> {
+    let mut command = Command::new("wl-copy");
+    command.stdin(Stdio::piped());
 
-    let mut stdin = command.stdin.take().unwrap();
-    stdin.drop(stdin);
+    let mut process = command.spawn().map_err(|err| err.to_string())?;
+    let mut stdin = process.stdin.take().unwrap();
+    stdin.write(data.as_bytes()).unwrap();
 
-    let status = command.status()?;
+    let status = process.wait().map_err(|err| err.to_string())?;
+    if !status.success() {
+        return Err(format!(
+            "wl-copy exited with status code: {}",
+            status.code().unwrap()
+        ));
+    }
 
-    if !status.success() {}
+    Ok(())
 }
 
 async fn get_access_token_via_device_code(client: &Client) -> ghauth::AccessToken {
@@ -176,7 +185,9 @@ async fn get_device_code(client: &Client) -> ghauth::DeviceCode {
     eprintln!("gh-login: Go to the link below and enter in the device code");
     eprintln!("{}", device_code.verification_uri);
     eprintln!("device code: {}", device_code.user_code);
-    try_copy_clipboard(device_code.user_code);
+    if let Some(error) = copy_clipboard(device_code.user_code.to_string()).err() {
+        warn!("Could not copy to clipboard: {}", error);
+    }
     device_code
 }
 
