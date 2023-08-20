@@ -10,13 +10,6 @@ A simple git [credentials helper](https://git-scm.com/docs/gitcredentials) for G
 # Features
 1. Its way less bloated than [Git Credential Manager](https://github.blog/2022-04-07-git-credential-manager-authentication-for-everyone)
 2. It relays to another credential helper. So you can use standard credential helpers with GitHub
-## TODO
-* Make the 'https://github.com/login/device' auto open using xdg-open
-* Auto copy device code to clipboard using wl-clipboard
-* Support xclip
-* Make an en environment variable to set the backing helper. eg GHLOGIN_BACKINGHELPER
-* Support Arch Linux (AUR)
-* Support Windows
 
 # Install
 

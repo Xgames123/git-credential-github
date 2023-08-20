@@ -1,4 +1,5 @@
-pkgver=0.1.0
+TARGET=$1
+pkgver=$2
 
 pkgname=gh-login
 pkgdesc="A simple git credentials helper for github"
@@ -6,10 +7,9 @@ license=MIT
 url="https://github.com/Xgames123/gh-login"
 maintianer=ldev
 
-TARGET=$1
 echo "os: Debain"
 echo "target: $TARGET"
-
+echo "version: $pkgver"
 
 CARCH=$(echo $TARGET | grep -o "^[^-]*")
 builddir=/tmp
@@ -27,9 +27,10 @@ fi
 
 rm -rf $fullbuilddir
 mkdir -p $fullbuilddir
-cp -rf packaging/debian/gh-login $builddir
+#cp -rf packaging/debian/gh-login $builddir
 
 # Generate control file
+mkdir $fullbuilddir/DEBIAN
 controlfile=$fullbuilddir/DEBIAN/control
 echo "" > $controlfile
 echo "Package: $pkgname" >> $controlfile
