@@ -6,6 +6,7 @@ A simple git [credentials helper](https://git-scm.com/docs/gitcredentials) for G
 
 ![Screenshot of gh-login](sample.png)
 
+
 # Features
 1. Its way less bloated than [Git Credential Manager](https://github.blog/2022-04-07-git-credential-manager-authentication-for-everyone)
 2. It relays to another credential helper. So you can use standard credential helpers with GitHub
