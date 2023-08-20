@@ -1,11 +1,11 @@
 [package]
 name = "gh-login"
 authors = ["ldev"]
-version = "0.1.1"
+version = "1.0.0"
 license-file="LICENSE.md"
 edition = "2021"
 description="A simple git credentials helper for github"
-homepage="https://github.com/Xgames123/gh-login"
+
 
 [[bin]]
 name = "git-credential-gh-login"

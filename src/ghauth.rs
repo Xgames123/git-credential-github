@@ -1,13 +1,14 @@
 static OAUTH_CLIENT_ID: &str = "71c898ad634b388e6614";
 static OAUTH_SCOPE: &str = "repo";
 
+use log::debug;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use std::fmt::{Formatter};
+use std::fmt::Formatter;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{error::Error, fmt, fmt::Display, thread::sleep};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct DeviceCode {
     pub device_code: String,
     pub user_code: String,
@@ -115,6 +116,7 @@ pub async fn poll_for_access_token(
 }
 
 pub async fn get_device_code(client: &reqwest::Client) -> Result<DeviceCode, reqwest::Error> {
+    debug!("get_device_code");
     let form_params = [("client_id", OAUTH_CLIENT_ID), ("scope", OAUTH_SCOPE)];
 
     let request = client
@@ -126,6 +128,6 @@ pub async fn get_device_code(client: &reqwest::Client) -> Result<DeviceCode, req
     let mut device_code: DeviceCode = response.json().await?;
 
     device_code.time = epoch_time();
-
+    debug!("device_code: {:?}", device_code);
     Ok(device_code)
 }
