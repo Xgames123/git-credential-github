@@ -46,7 +46,7 @@ pub fn epoch_time() -> u64 {
     let start = SystemTime::now();
     let since_the_epoch = start
         .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards?????");
+        .expect("Time went backwards????");
 
     since_the_epoch.as_secs()
 }
@@ -101,7 +101,7 @@ pub async fn poll_for_access_token(
                     Ok(token) => Ok(token),
                     Err(_) => {
                         continue;
-                    } //BADCODE: Github doesn't set a status code so we threat all parser errors as 'authorization_pending'
+                    } //FIXME: Github doesn't set a status code so we threat all parser errors as 'authorization_pending'
                 }
             }
             Err(err) => {

@@ -1,18 +1,11 @@
 [package]
-name = "gh-login"
-authors = ["ldev"]
-version = "1.0.0"
+name = "git-credential-github"
+authors = ["ldev <ldev at ldev dot eu dot org>"]
+version = "2.0.0"
 license-file="LICENSE.md"
 edition = "2021"
 description="A simple git credentials helper for github"
 
-
-[target.armv7-unknown-linux-gnueabihf]
-linker = "armv7-rpi2-linux-gnueabihf-gcc"
-
-[[bin]]
-name = "git-credential-gh-login"
-path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -21,7 +14,6 @@ clap = {version = "4.3", features = ["default", "cargo", "derive"]}
 reqwest = {version = "0.11", features= ["json"]}
 serde = {version="1.0", features=["derive"]}
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-#keyring = {version = "2.0", features=["linux-default-keyutils"]}
 shlex = {version= "1.1.0"}
 log = {version="0.4"}
 stderrlog = {version="0.5"}
