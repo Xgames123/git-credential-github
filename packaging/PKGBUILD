@@ -12,6 +12,7 @@ arch=('any')
 binname=git-credential-github
 source=("$pkgname-$pkgver.tar.gz::$url/archive/$pkgver.tar.gz")
 conflicts=("git-credential-github-git")
+replaces=("gh-login")
 makedepends=(
 cargo
 )
