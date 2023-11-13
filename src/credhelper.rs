@@ -1,27 +1,17 @@
 use std::collections::HashMap;
+use std::io;
 use std::process::{Child, Command, Stdio};
-use std::{fmt, io};
 
 use log::debug;
 
 use crate::{paramparsing, Operation};
 
-#[derive(Debug, Clone)]
-struct InvalidHelper;
-
-impl fmt::Display for InvalidHelper {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Invalid credential helper name")
-    }
-}
-impl std::error::Error for InvalidHelper {}
-
 fn spawn_helper(helper: &str, operation: Operation) -> io::Result<Child> {
-    let helpercmd = helper.trim_matches('\'');
+    let helpercmd = helper.trim();
     let helpercmd = if helpercmd.starts_with('/') {
-        String::from(helper)
+        String::from(helpercmd)
     } else {
-        format!("git credential-{}", helper)
+        format!("git credential-{}", helpercmd)
     };
 
     debug!("Running credential helper '{}'", helpercmd);
