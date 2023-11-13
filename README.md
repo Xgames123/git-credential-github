@@ -4,7 +4,7 @@
 
 A simple git [credentials helper](https://git-scm.com/docs/gitcredentials) for GitHub
 
-![Screenshot of a device code request](sample.png)
+![Screenshot of a device code request](example.png)
 
 
 # Features
