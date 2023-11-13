@@ -17,7 +17,8 @@ impl fmt::Display for InvalidHelper {
 impl std::error::Error for InvalidHelper {}
 
 fn spawn_helper(helper: &str, operation: Operation) -> io::Result<Child> {
-    let helpercmd = if helper.starts_with('/') {
+    let helpercmd = helper.trim_matches('\'');
+    let helpercmd = if helpercmd.starts_with('/') {
         String::from(helper)
     } else {
         format!("git credential-{}", helper)
