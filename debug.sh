@@ -1,4 +1,4 @@
-alias debug_git=git -c credential.helper="$PWD/target/debug/git-credential-gh-login -b cache -vv"
+alias debug_git=git -c credential.helper="$PWD/target/debug/git-credential-github -b cache -vv"
 export RUST_BACKTRACE=1
 if [ "$1" = "--path" ] ; then
   export PATH="$PWD/target/debug:$PATH"

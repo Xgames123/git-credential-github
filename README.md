@@ -1,47 +1,55 @@
 <p align="center">
-  <img src="https://github.com/Xgames123/gh-login/blob/main/gh-login-logo_200px_transparent.png?raw=true" alt="gh-login-logo"/>
+  <img src="https://github.com/Xgames123/git-credential-github/blob/main/logo.png?raw=true" alt="logo"/>
 </p>
 
 A simple git [credentials helper](https://git-scm.com/docs/gitcredentials) for GitHub
 
-![Screenshot of gh-login](sample.png)
+![Screenshot of a device code request](sample.png)
 
 
 # Features
-1. Its way less bloated than [Git Credential Manager](https://github.blog/2022-04-07-git-credential-manager-authentication-for-everyone)
-2. It relays to another credential helper. So you can use standard credential helpers with GitHub
+* Its way less bloated than [Git Credential Manager](https://github.blog/2022-04-07-git-credential-manager-authentication-for-everyone)
+* It relays to another credential helper. So you can use standard credential helpers with GitHub
 
 # Install
 
 ## Debian/Ubuntu
-1. Download latest release and run ```dpkg -i gh-login.deb``` NOTE: Replace ```gh-login.deb``` with the file you just downloaded
-2. Go to [configuring](#Configuring)
+Download the .deb from the [latest release](https://github.com/xgames123/git-credential-github/releases/latest) and run ```dpkg -i file_you_just_downloaded.deb```
 
 ## Arch linux
-Install gh-login form the AUR
-```bash
-git clone aur.archlinux.org/gh-login.git
-cd gh-login
-makepkg --syncdeps --install
-```
-Or use an aur helper
-```bash
-yay -S gh-login
-```
-Go to [configuring](#Configuring)
+Install git-credential-github form the AUR. [ArchLinux wiki](https://wiki.archlinux.org/title/Arch_User_Repository#Installing_and_upgrading_packages)
 
 # Configuring
-Set gh-login as your git credential helper for github urls
-   
-```git config --global credential.https://github.com.helper "gh-login -b 'cache --timeout=86400'"```
-   
-This will set 'cache' with a timeout of 1 day (86400 seconds) as the backing helper. See https://git-scm.com/docs/gitcredentials
+```~/.gitconfig```
+```ini
+[credential "https://github.com"]
+  helper = github -b 'cache --timeout=86400'
+```
+This sets the credential helper for github using the cache helper with a timeout of 1 day
 
+## More examples
 
+### Set only for repos owned by you
+```~/.gitconfig```
+```ini
+[credentials]
+	useHttpPath = true
+[credential "https://github.com/Xgames123"] # change to your name
+  username=Xgames123 # change to your name
+  helper = github -b 'cache --timeout=86400'
+```
 
+### Using pass to store your credentials
+Install [git-credential-pass](https://github.com/Xgames123/git-credential-pass)
+```~/.gitconfig```
+```ini
+[credential "https://github.com"]
+  helper = github -b 'pass -p git/{host}/{username} -t ~/.config/git-credential-pass/default.template'
+```
+See [git-credential-pass](https://github.com/Xgames123/git-credential-pass) for more info
 
 # Bug or Error
 If you find a bug, get an error or the docs are wrong.
-* [Create an issue](https://github.com/Xgames123/gh-login/issues/new/)
+* [Create an issue](https://github.com/Xgames123/git-credential-github/issues/new/)
 * Message me <[ldev@ldev.eu.org](mailto://ldev@ldev.eu.org)>
 * Message me on discord [ldev105](https://ldev.eu.org/socials/discord)

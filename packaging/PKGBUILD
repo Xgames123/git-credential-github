@@ -4,14 +4,13 @@ pkgrel=2
 pkgname=git-credential-github
 pkgdesc="A simple git credentials helper for github"
 license=('MIT')
-url="https://github.com/Xgames123/gh-login"
+url="https://github.com/Xgames123/$pkgname"
 maintainer="ldev <ldev dot eu dot org>"
 section="vcs"
 arch=('any')
 
-binname=git-credential-$pkgname
-source=("$pkgname-$pkgver.tar.gz::https://github.com/Xgames123/$pkgname/archive/$pkgver.tar.gz")
-b2sums=("SKIP")
+binname=git-credential-github
+source=("$pkgname-$pkgver.tar.gz::$url/archive/$pkgver.tar.gz")
 makedepends=(
 cargo
 )
@@ -47,5 +46,5 @@ check() {
 package() {
     cd "$srcdir/$pkgname-$pkgver"
     install -Dm0755 -t "$pkgdir/usr/bin/" "target/release/$binname"
-    ln -s "/usr/bin/git-credential-github" "git-credential-gh-login"
+    ln -s "/usr/bin/$binname" "git-credential-gh-login"
 }
