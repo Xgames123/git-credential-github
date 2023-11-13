@@ -48,5 +48,5 @@ check() {
 package() {
     cd "$srcdir/$pkgname-$pkgver"
     install -Dm0755 -t "$pkgdir/usr/bin/" "target/release/$binname"
-    ln -s "/usr/bin/$binname" "git-credential-gh-login"
+    ln -s "/usr/bin/$binname" "$pkgdir/usr/bin/git-credential-gh-login"
 }
