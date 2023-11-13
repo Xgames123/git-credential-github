@@ -20,9 +20,7 @@ fn spawn_helper(helper: &str, operation: Operation) -> io::Result<Child> {
     let helpercmd = if helper.starts_with('/') {
         String::from(helper)
     } else {
-        let mut helpercmd = String::from("git credential-");
-        helpercmd.push_str(helper);
-        helper.to_string()
+        format!("git credential-{}", helper)
     };
 
     debug!("Running credential helper '{}'", helpercmd);
