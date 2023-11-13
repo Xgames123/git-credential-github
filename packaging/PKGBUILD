@@ -1,5 +1,5 @@
 pkgver=1.0.0
-pkgrel=2
+pkgrel=1
 
 pkgname=git-credential-github
 pkgdesc="A simple git credentials helper for github"
@@ -11,6 +11,7 @@ arch=('any')
 
 binname=git-credential-github
 source=("$pkgname-$pkgver.tar.gz::$url/archive/$pkgver.tar.gz")
+conflicts=("git-credential-github-git")
 makedepends=(
 cargo
 )
