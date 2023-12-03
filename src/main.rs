@@ -2,7 +2,6 @@ use crate::ghauth::AccessTokenPollError;
 use clap::{crate_name, crate_version, Parser, Subcommand};
 use log::*;
 use reqwest::Client;
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::io::{self, ErrorKind, Write};
 use std::process::{Command, Stdio};
@@ -46,7 +45,7 @@ struct Cli {
     auth: bool,
 
     /// Don't authenticate when the credential helper returns a non 0 exit code
-    #[arg(long, short = 'f')]
+    #[arg(long)]
     no_auth_on_fail: bool,
 
     #[command(subcommand)]
