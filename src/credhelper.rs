@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::io;
 use std::process::{Child, Command, Stdio};
+use thiserror::Error;
 
-use log::debug;
+use log::{debug, error};
 
 use crate::{paramparsing, Operation};
 
@@ -27,11 +28,19 @@ fn spawn_helper(helper: &str, operation: Operation) -> io::Result<Child> {
     Ok(cmd.spawn()?)
 }
 
+#[derive(Error, Debug)]
+pub enum CredHelperError {
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
+    #[error("credential helper exited with code {0}")]
+    Non0ExitCode(i32, Option<HashMap<String, String>>),
+}
+
 pub fn run(
     helper: &str,
     operation: Operation,
     params: &HashMap<String, String>,
-) -> io::Result<HashMap<String, String>> {
+) -> Result<HashMap<String, String>, CredHelperError> {
     let mut process = spawn_helper(helper, operation)?;
     let mut stdin = process.stdin.take().unwrap();
     paramparsing::write_to(&params, &mut stdin)?;
@@ -40,6 +49,14 @@ pub fn run(
     let mut stdout = process.stdout.take().unwrap();
     let output_params = paramparsing::parse_from(&mut stdout)?;
     drop(stdout);
-    process.wait()?;
-    Ok(output_params)
+    let output = process.wait()?;
+
+    if !output.success() {
+        Err(CredHelperError::Non0ExitCode(
+            output.code().unwrap_or_default(),
+            Some(output_params),
+        ))
+    } else {
+        Ok(output_params)
+    }
 }

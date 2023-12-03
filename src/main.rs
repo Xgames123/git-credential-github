@@ -2,6 +2,7 @@ use crate::ghauth::AccessTokenPollError;
 use clap::{crate_name, crate_version, Parser, Subcommand};
 use log::*;
 use reqwest::Client;
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::io::{self, ErrorKind, Write};
 use std::process::{Command, Stdio};
@@ -39,6 +40,14 @@ struct Cli {
     ///Don't copy the device code to the clipboard
     #[arg(long)]
     no_clip: bool,
+
+    /// Go through the authentication process even if not needed. (only for get operation)
+    #[arg(long)]
+    auth: bool,
+
+    /// Don't authenticate when the credential helper returns a non 0 exit code
+    #[arg(long, short = 'f')]
+    no_auth_on_fail: bool,
 
     #[command(subcommand)]
     operation: Operation,
@@ -100,16 +109,29 @@ async fn main() {
     }
 
     let mut output =
-        credhelper::run(&backing_helper, cli.operation, &params).unwrap_or_else(|err| {
-            die!(
-                "Failed to run credential helper '{}'\n{}",
-                backing_helper,
-                err
-            );
+        credhelper::run(&backing_helper, cli.operation, &params).unwrap_or_else(|err| match err {
+            credhelper::CredHelperError::Io(err) => {
+                die!(
+                    "Failed to run credential helper '{}'\n{}",
+                    backing_helper,
+                    err
+                );
+            }
+            credhelper::CredHelperError::Non0ExitCode(code, output) => {
+                error!(
+                    "Credential helper '{}' exited with code: {}",
+                    backing_helper, code
+                );
+                if cli.no_auth_on_fail {
+                    die!("See Last error");
+                }
+
+                output.unwrap_or_default()
+            }
         });
 
-    if cli.operation.is_get() && !output.contains_key("password") {
-        debug!("No password returned by helper. Fetching credentials..");
+    if cli.operation.is_get() && (!output.contains_key("password") || cli.auth) {
+        debug!("Fetching credentials..");
         let client = Client::new();
         let device_code = ghauth::get_device_code(&client).await.unwrap();
 

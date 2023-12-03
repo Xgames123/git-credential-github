@@ -10,10 +10,11 @@ description="A simple git credentials helper for github"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = {version = "4.3", features = ["default", "cargo", "derive"]}
+clap = {version = "4.4", features = ["default", "cargo", "derive"]}
 reqwest = {version = "0.11", features= ["json"]}
 serde = {version="1.0", features=["derive"]}
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-shlex = {version= "1.1.0"}
+shlex = {version= "1.2.0"}
 log = {version="0.4"}
+thiserror={version="1.0.50"}
 stderrlog = {version="0.5"}
