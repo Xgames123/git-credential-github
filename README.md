@@ -32,7 +32,7 @@ This sets the credential helper for github using the cache helper with a timeout
 ### Set only for repos owned by you
 ```~/.gitconfig```
 ```ini
-[credentials]
+[credential]
 	useHttpPath = true
 [credential "https://github.com/Xgames123"] # change to your name
   username=Xgames123 # change to your name
