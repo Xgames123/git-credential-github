@@ -31,7 +31,7 @@ This sets the credential helper for github using the cache helper with a timeout
 ### Set only for repos owned by you
 ```~/.gitconfig```
 ```ini
-[credentials]
+[credential]
 	useHttpPath = true
 [credential "https://github.com/Xgames123"] # change to your name
   username=Xgames123 # change to your name
@@ -52,3 +52,8 @@ If you find a bug, get an error or the docs are wrong.
 * [Create an issue](https://github.com/Xgames123/git-credential-github/issues/new/)
 * Message me <[ldev@ldev.eu.org](mailto://ldev@ldev.eu.org)>
 * Message me on discord [ldev105](https://ldev.eu.org/socials/discord)
+
+
+# Building debian packages from source
+1. install [reltools](https://github.com/Xgames123/reltools)
+2. run makepkg_deb inside the packaging directory
