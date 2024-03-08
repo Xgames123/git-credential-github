@@ -6,6 +6,8 @@ pkgdesc="A simple git credentials helper for github"
 license=('MIT')
 url="https://github.com/Xgames123/$pkgname"
 maintainer="ldev <ldev dot eu dot org>"
+maintainer_short="ldev"
+tags=(git-credential-github git git-credential github gh-login gcm)
 section="vcs"
 arch=('any')
 
@@ -47,6 +49,11 @@ check() {
 
 package() {
     cd "$srcdir/$pkgname-$pkgver"
-    install -Dm0755 -t "$pkgdir/usr/bin/" "target/release/$binname"
-    ln -s "/usr/bin/$binname" "git-credential-gh-login"
+    if [ "$os" = "choco" ] ; then
+      cp -f "target/release/$binname" "$pkgdir/tools"
+    else
+      install -Dm0755 -t "$pkgdir/usr/bin/" "target/release/$binname"
+      ln -s "/usr/bin/$binname" "git-credential-gh-login"
+    fi
 }
+
