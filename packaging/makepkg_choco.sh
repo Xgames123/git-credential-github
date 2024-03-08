@@ -1,4 +1,5 @@
 #!/bin/bash
+# NOTE: this is designed to run under wsl on windows
 os="choco"
 
 source ./PKGBUILD

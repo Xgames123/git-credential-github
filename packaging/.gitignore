@@ -4,3 +4,4 @@ pkg_choco/
 pkg/
 *.deb
 *.tar.gz
+*.nupkg
