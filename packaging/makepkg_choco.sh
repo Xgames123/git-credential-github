@@ -12,8 +12,7 @@ mkdir -p $pkgdir
 mkdir -p $pkgdir/tools
 
 echo "Generating nuspec"
-echo "
-<?xml version=\"1.0\" encoding=\"utf-8\"?>
+echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
 <package xmlns=\"http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd\">
   <metadata>
     <id>$pkgname</id>
