@@ -29,6 +29,7 @@ echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
     <projectSourceUrl>$url</projectSourceUrl>
     <tags>$tags </tags>
     <summary>$pkgdesc</summary>
+    <description>$pkgdesc</description>
   </metadata>
   <files>
     <file src=\"tools\\**\" target=\"tools\" />
