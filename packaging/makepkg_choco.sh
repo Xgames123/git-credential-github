@@ -2,12 +2,24 @@
 # NOTE: this is designed to run under wsl on windows
 os="choco"
 
+#aliases
+function cargo() {
+  cargo.exe $@
+}
+function choco() {
+  choco.exe $@
+}
+#end aliases
+
 source ./PKGBUILD
 
-srcdir=$PWD/src
+root="$PWD"
+
+echo "TODO: fix me"
+srcdir=$PWD/../src
+lfjsl
 pkgdir=$PWD/pkg_choco/$pkgname
 
-mkdir -p $srcdir
 mkdir -p $pkgdir
 mkdir -p $pkgdir/tools
 
@@ -50,8 +62,8 @@ echo "RUNNING package()"
 package
 
 cd $pkgdir
-choco.exe pack
-cd ..
+choco pack
+cd $root
 
 mv $pkgdir/$pkgname.$pkgver.nupkg $pkgname.$pkgver.nupkg
 
