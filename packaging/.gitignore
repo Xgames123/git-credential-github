@@ -1,4 +1,7 @@
 src/
+pkg_deb/
+pkg_choco/
 pkg/
 *.deb
 *.tar.gz
+*.nupkg
