@@ -8,21 +8,24 @@ A simple git [credentials helper](https://git-scm.com/docs/gitcredentials) for G
 
 # Features
 * Its way less bloated than [Git Credential Manager](https://github.blog/2022-04-07-git-credential-manager-authentication-for-everyone)
-* It relays to another credential helper. So you can use standard credential helpers with GitHub
+* You can use it together with any other git credential helper of choice
 
 # Install
 
 ## Debian/Ubuntu
-Download the .deb from the [latest release](https://github.com/xgames123/git-credential-github/releases/latest) and run ```dpkg -i file_you_just_downloaded.deb```
+Download the .deb from the [latest release](https://github.com/xgames123/git-credential-github/releases/latest) and run `dpkg -i file_you_just_downloaded.deb`
 
 ## Arch linux
 Install git-credential-github form the AUR. [ArchLinux wiki](https://wiki.archlinux.org/title/Arch_User_Repository#Installing_and_upgrading_packages)
 
 # Configuring
+NOTE: Configuring changed after v2.2 [pre v2.2 config](PRE_v2_2_CONFIG.md)
+
 ```~/.gitconfig```
 ```ini
 [credential "https://github.com"]
-  helper = github -b 'cache --timeout=86400'
+  helper = cache
+  helper = github # important that you put it last because we only need to run gcg when other helpers have failed to give credentials
 ```
 This sets the credential helper for github using the cache helper with a timeout of 1 day
 
@@ -32,20 +35,28 @@ This sets the credential helper for github using the cache helper with a timeout
 ```~/.gitconfig```
 ```ini
 [credential]
-	useHttpPath = true
+	useHttpPath = true # makes git give the whole path instead of just https://github.com
 [credential "https://github.com/Xgames123"] # change to your name
   username=Xgames123 # change to your name
-  helper = github -b 'cache --timeout=86400'
+  helper = cache
+  helper = github
 ```
 
-### Using pass to store your credentials
-Install [git-credential-pass](https://github.com/Xgames123/git-credential-pass)
+### Use pass as the credential helper for everything
 ```~/.gitconfig```
 ```ini
-[credential "https://github.com"]
-  helper = github -b 'pass -p git/{host}/{username} -t ~/.config/git-credential-pass/default.template'
+[credential]
+	useHttpPath = true # makes git give the whole path instead of just https://github.com
+    helper = pass -r 3 -t ~/.config/git-credential-pass/default.template -p git/{protocol}/{host}/main
+
+[credential "https://github.com/Xgames123"] # change to your name
+  username=Xgames123 # change to your name
+  helper = github
+
+[credential "https://codeberg.org"]
+  username=ldev
 ```
-See [git-credential-pass](https://github.com/Xgames123/git-credential-pass) for more info
+
 
 # Bug or Error
 If you find a bug, get an error or the docs are wrong.
