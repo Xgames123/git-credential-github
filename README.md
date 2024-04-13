@@ -67,4 +67,4 @@ If you find a bug, get an error or the docs are wrong.
 
 # Building debian packages from source
 1. install [reltools](https://github.com/Xgames123/reltools)
-2. run makepkg_deb inside the packaging directory
+2. run makepkgx --pkgformat deb inside the packaging directory

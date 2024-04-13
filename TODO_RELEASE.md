@@ -3,6 +3,6 @@
 5. tag commit and create release
 
 6. bump aur/PKGBUILD
-7. makepkg_deb.sh
+7. makepkgx --pkgformat deb
 8. regen checksums (aur/PKGBUILD) and .SRCINFO
 9. close issues fixed in release
