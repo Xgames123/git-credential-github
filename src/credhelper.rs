@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use log::{debug, error};
 
-use crate::{paramparsing, Operation};
+use crate::{params, Operation};
 
 fn spawn_helper(helper: &str, operation: Operation) -> io::Result<Child> {
     let helpercmd = helper.trim();
@@ -43,11 +43,11 @@ pub fn run(
 ) -> Result<HashMap<String, String>, CredHelperError> {
     let mut process = spawn_helper(helper, operation)?;
     let mut stdin = process.stdin.take().unwrap();
-    paramparsing::write_to(&params, &mut stdin)?;
+    params::write_to(&params, &mut stdin)?;
     drop(stdin);
 
     let mut stdout = process.stdout.take().unwrap();
-    let output_params = paramparsing::parse_from(&mut stdout)?;
+    let output_params = params::parse_from(&mut stdout)?;
     drop(stdout);
     let output = process.wait()?;
 

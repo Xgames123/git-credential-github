@@ -1,17 +1,11 @@
-use crate::ghauth::AccessTokenPollError;
 use clap::{crate_name, crate_version, Parser, Subcommand};
 use log::*;
-use reqwest::Client;
-use std::collections::HashMap;
-use std::fmt::Display;
-use std::io::{self, ErrorKind, Write};
-use std::process::{Command, Stdio};
-use std::string::String;
+use std::{collections::HashMap, fmt::Display, string::String};
 
 mod credhelper;
+mod flow;
 mod ghauth;
-mod paramparsing;
-mod utils;
+mod params;
 mod verbosity;
 
 const PROMPT_SIZE: usize = 55;
@@ -23,8 +17,16 @@ const GCG_BACKINGHELPER: &str = "GCG_BACKINGHELPER";
 #[command(propagate_version = true)]
 struct Cli {
     ///DEPRECATED: The backing credentials helper. The credentials will be stored here.
-    #[arg(short = 'b', long)]
+    #[arg(hide = true, short = 'b', long)]
     backing_helper: Option<String>,
+
+    ///DEPRECATED: Always go through the authentication process even if not needed. (only for get operation)
+    #[arg(hide = true, long)]
+    auth: bool,
+
+    ///DEPRECATED: Don't authenticate when the credential helper returns a non 0 exit code
+    #[arg(hide = true, long)]
+    no_auth_on_fail: bool,
 
     /// Disables the startup prompt
     #[arg(short = 'p', long)]
@@ -41,19 +43,11 @@ struct Cli {
     #[arg(long)]
     no_clip: bool,
 
-    ///DEPRECATED: Always go through the authentication process even if not needed. (only for get operation)
-    #[arg(long)]
-    auth: bool,
-
-    ///DEPRECATED: Don't authenticate when the credential helper returns a non 0 exit code
-    #[arg(long)]
-    no_auth_on_fail: bool,
-
     #[command(subcommand)]
     operation: Operation,
 }
 
-#[derive(Subcommand, Copy, Clone)]
+#[derive(Subcommand, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Operation {
     ///Stores the credentials in the backing helper
     Store,
@@ -63,21 +57,17 @@ pub enum Operation {
     Get,
 }
 impl Display for Operation {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Get => fmt.write_str("get"),
-            Self::Erase => fmt.write_str("erase"),
-            Self::Store => fmt.write_str("store"),
-        }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Get => "get",
+            Self::Erase => "erase",
+            Self::Store => "store",
+        })
     }
 }
-impl Operation {
-    pub fn is_get(&self) -> bool {
-        match self {
-            Operation::Get => true,
-            _ => false,
-        }
-    }
+
+macro_rules! die {
+    ($($arg:tt)+) => {log::error!("FATAL: {}", format!($($arg)+)); std::process::exit(1);}
 }
 
 #[tokio::main]
@@ -95,24 +85,22 @@ async fn main() {
         .or_else(|| std::env::var(GHLOGIN_BACKINGHELPER).ok())
         .or_else(|| std::env::var(GCG_BACKINGHELPER).ok());
 
-    let params = paramparsing::parse_from_stdin().unwrap_or_else(|err| {
-        die!("Failed to read data from stdin\n{}", err);
+    let params = params::parse_from_stdin().unwrap_or_else(|err| {
+        die!("Failed to read parameters from stdin\n{}", err);
     });
 
-    if let Some(start_path) = std::env::args().nth(0) {
+    let start_path = std::env::args().nth(0);
+    if let Some(start_path) = &start_path {
         if start_path.ends_with("git-credential-gh-login") {
             warn!("gh-login is deprecated. Change gh-login to github in your .gitconfig");
         }
     }
 
-    debug!(
-        "running_from={}",
-        std::env::args().nth(0).unwrap_or(String::new())
-    );
+    debug!("running_from={:?}", start_path);
     debug!("params={:?}", params);
-    debug!("operation={}", cli.operation);
+    debug!("operation={:?}", cli.operation);
 
-    if cli.operation.is_get() && !cli.no_prompt && !cli.verbosity.is_quied() {
+    if cli.operation == Operation::Get && !cli.no_prompt && !cli.verbosity.is_quied() {
         print_prompt();
     }
 
@@ -124,46 +112,21 @@ async fn main() {
     }
 
     let output = if let Some(backing_helper) = backing_helper {
-        debug!("backing_helper={}", &backing_helper);
-        warn!("--backing-helper, GCG_BACKINGHELPER and GHLOGIN_BACKINGHELPER are deprecated.\nAdd 'github' to the END of your .gitconfig credentials helper list.\n\nSee readme for more info: https://github.com/Xgames123/git-credential-github\n");
-        let mut output = credhelper::run(&backing_helper, cli.operation, &params).unwrap_or_else(
-            |err| match err {
-                credhelper::CredHelperError::Io(err) => {
-                    die!(
-                        "Failed to run credential helper '{}'\n{}",
-                        backing_helper,
-                        err
-                    );
-                }
-                credhelper::CredHelperError::Non0ExitCode(code, output) => {
-                    error!(
-                        "Credential helper '{}' exited with code: {}",
-                        backing_helper, code
-                    );
-                    if cli.no_auth_on_fail {
-                        die!("See Last error");
-                    }
-
-                    output.unwrap_or_default()
-                }
-            },
-        );
-
-        if cli.operation.is_get() && (!output.contains_key("password") || cli.auth) {
-            fetch_creds(
-                &mut output,
-                cli.no_clip,
-                cli.no_open_url,
-                cli.verbosity.is_quied(),
-            )
-            .await;
-        };
-
-        output
+        legacy(
+            cli.operation,
+            cli.no_auth_on_fail,
+            cli.auth,
+            cli.no_clip,
+            cli.no_open_url,
+            cli.verbosity.is_quied(),
+            &backing_helper,
+            &params,
+        )
+        .await
     } else {
         let mut output = HashMap::new();
-        if cli.operation.is_get() {
-            fetch_creds(
+        if cli.operation == Operation::Get {
+            flow::fetch_creds(
                 &mut output,
                 cli.no_clip,
                 cli.no_open_url,
@@ -178,47 +141,7 @@ async fn main() {
     debug!("Done. Writing credentials to stdout");
     debug!("Output params: '{:?}'", output);
 
-    paramparsing::write_to_stdout(&output);
-}
-
-async fn fetch_creds(
-    output: &mut HashMap<String, String>,
-    no_clip: bool,
-    no_open_url: bool,
-    quied: bool,
-) {
-    debug!("Fetching credentials..");
-    let client = Client::new();
-    let device_code = ghauth::get_device_code(&client).await.unwrap();
-
-    if !quied {
-        eprintln!("Go to the link below and enter in the device code");
-        eprintln!("{}", device_code.verification_uri.to_string());
-    }
-    eprintln!("device code: {}", device_code.user_code.to_string());
-    if !no_clip {
-        copy_clipboard(&device_code.user_code);
-    }
-    if !no_open_url {
-        open_url(&device_code.verification_uri);
-    }
-
-    let access_token = loop {
-        break match ghauth::poll_for_access_token(&client, &device_code).await {
-            Ok(token) => token,
-            Err(err) => match err {
-                AccessTokenPollError::DeviceCodeExpired => {
-                    info!("Device code expired");
-                    continue;
-                }
-                AccessTokenPollError::Reqwest(err) => {
-                    panic!("{}", err);
-                }
-            },
-        };
-    };
-
-    output.insert(String::from("password"), access_token.access_token);
+    params::write_to_stdout(&output);
 }
 
 fn print_prompt() {
@@ -235,33 +158,43 @@ fn print_prompt_text(text: &str) {
     eprintln!("*{: ^1$}*", text, PROMPT_SIZE);
 }
 
-fn run_clip_prog(program: &str, data: &str) -> io::Result<()> {
-    let mut command = Command::new(program);
-    command.stdin(Stdio::piped());
+async fn legacy(
+    op: Operation,
+    no_auth_on_fail: bool,
+    auth: bool,
+    no_clip: bool,
+    no_open_url: bool,
+    quiet: bool,
+    backing_helper: &str,
+    params: &HashMap<String, String>,
+) -> HashMap<String, String> {
+    warn!("--backing-helper, GCG_BACKINGHELPER and GHLOGIN_BACKINGHELPER are deprecated.\nAdd 'github' to the END of your .gitconfig credentials helper list.\n\nSee readme for more info: https://github.com/Xgames123/git-credential-github\n");
+    debug!("backing_helper={}", &backing_helper);
+    let mut output =
+        credhelper::run(&backing_helper, op, &params).unwrap_or_else(|err| match err {
+            credhelper::CredHelperError::Io(err) => {
+                die!(
+                    "Failed to run credential helper '{}'\n{}",
+                    backing_helper,
+                    err
+                );
+            }
+            credhelper::CredHelperError::Non0ExitCode(code, output) => {
+                error!(
+                    "Credential helper '{}' exited with code: {}",
+                    backing_helper, code
+                );
+                if no_auth_on_fail {
+                    die!("See Last error");
+                }
 
-    let mut process = command.spawn()?;
-    let mut stdin = process.stdin.take().unwrap();
-    stdin.write_all(data.as_bytes()).unwrap();
-    drop(stdin);
-    let status = process.wait().unwrap();
-    debug!("{}", status);
-    Ok(())
-}
+                output.unwrap_or_default()
+            }
+        });
 
-fn copy_clipboard(data: &str) {
-    run_clip_prog("wl-copy", data).unwrap_or_else(|err| {
-        if err.kind() != ErrorKind::NotFound {
-            warn!("Could not copy to clipboard (wl-copy)\n{}", err);
-        }
-        run_clip_prog("xclip", data).unwrap_or_else(|err| {
-            warn!("Could not copy to clipboard (xclip)\n{}", err);
-        })
-    })
-}
+    if op == Operation::Get && (!output.contains_key("password") || auth) {
+        flow::fetch_creds(&mut output, no_clip, no_open_url, quiet).await;
+    };
 
-fn open_url(url: &str) {
-    debug!("open");
-    open::that(url).unwrap_or_else(|err| {
-        warn!("Could not start open url\n{}", err);
-    });
+    output
 }

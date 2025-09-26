@@ -28,6 +28,7 @@ impl DeviceCode {
     }
 }
 
+#[allow(unused)]
 #[derive(Deserialize)]
 pub struct AccessToken {
     pub access_token: String,
@@ -74,13 +75,10 @@ pub async fn poll_for_access_token(
     device_code: &DeviceCode,
 ) -> Result<AccessToken, AccessTokenPollError> {
     let form_params = [
-        ("client_id", OAUTH_CLIENT_ID.to_string()),
-        ("scope", OAUTH_SCOPE.to_string()),
-        ("device_code", device_code.device_code.to_owned()),
-        (
-            "grant_type",
-            "urn:ietf:params:oauth:grant-type:device_code".to_string(),
-        ),
+        ("client_id", OAUTH_CLIENT_ID),
+        ("scope", OAUTH_SCOPE),
+        ("device_code", &device_code.device_code),
+        ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
     ];
 
     loop {
@@ -99,7 +97,8 @@ pub async fn poll_for_access_token(
             Ok(response) => {
                 match response.json().await {
                     Ok(token) => Ok(token),
-                    Err(_) => {
+                    Err(e) => {
+                        panic!("gherror status:{:?} {}", e.status(), e);
                         continue;
                     } //FIXME: Github doesn't set a status code so we threat all parser errors as 'authorization_pending'
                 }

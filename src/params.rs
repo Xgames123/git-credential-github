@@ -21,9 +21,9 @@ pub fn write_to(params: &HashMap<String, String>, stream: &mut impl io::Write) -
 pub fn parse_from(stream: &mut impl io::Read) -> io::Result<HashMap<String, String>> {
     let mut params = HashMap::<String, String>::new();
     let mut reader = BufReader::new(stream);
+    let mut buf = String::new();
     loop {
-        let mut buf = String::new();
-
+        buf.clear();
         reader.read_line(&mut buf)?;
         let buf = buf.trim();
         if buf.is_empty() {
