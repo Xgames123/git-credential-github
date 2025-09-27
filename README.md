@@ -18,18 +18,30 @@ Download the .deb from the [latest release](https://github.com/xgames123/git-cre
 ## Arch linux
 Install git-credential-github form the AUR. [ArchLinux wiki](https://wiki.archlinux.org/title/Arch_User_Repository#Installing_and_upgrading_packages)
 
+## Windows
+Install from winget  `winget install git-credential-github`
+
 # Configuring
 NOTE: Configuring changed after v2.2 [pre v2.2 config](PRE_v2_2_CONFIG.md)
 
 ```~/.gitconfig```
 ```ini
 [credential "https://github.com"]
-  helper = cache
-  helper = github # important that you put it last because we only need to run gcg when other helpers have failed to give credentials
+  helper = cache # Note: cache doesn't work on windows
+  helper = github # important that you put it LAST because we only need to run gcg when other helpers have failed to give credentials
 ```
-This sets the credential helper for github using the cache helper with a timeout of 1 day
+This sets the credential helper for github using the cache helper.
 
 ## More examples
+
+
+### Use windows builtin credential store
+```%USERPROFILE%\.gitconfig```
+```ini
+[credential "https://github.com"]
+  helper = wincred # store credentials in wincred
+  helper = github
+```
 
 ### Set only for repos owned by you
 ```~/.gitconfig```
