@@ -70,8 +70,7 @@ macro_rules! die {
     ($($arg:tt)+) => {log::error!("FATAL: {}", format!($($arg)+)); std::process::exit(1);}
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let cli = Cli::parse();
 
     stderrlog::new()
@@ -122,7 +121,6 @@ async fn main() {
             &backing_helper,
             &params,
         )
-        .await
     } else {
         let mut output = HashMap::new();
         if cli.operation == Operation::Get {
@@ -131,8 +129,7 @@ async fn main() {
                 cli.no_clip,
                 cli.no_open_url,
                 cli.verbosity.is_quied(),
-            )
-            .await;
+            );
         }
 
         output
@@ -158,7 +155,7 @@ fn print_prompt_text(text: &str) {
     eprintln!("*{: ^1$}*", text, PROMPT_SIZE);
 }
 
-async fn legacy(
+fn legacy(
     op: Operation,
     no_auth_on_fail: bool,
     auth: bool,
@@ -193,7 +190,7 @@ async fn legacy(
         });
 
     if op == Operation::Get && (!output.contains_key("password") || auth) {
-        flow::fetch_creds(&mut output, no_clip, no_open_url, quiet).await;
+        flow::fetch_creds(&mut output, no_clip, no_open_url, quiet);
     };
 
     output

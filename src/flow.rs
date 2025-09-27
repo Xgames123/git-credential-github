@@ -1,21 +1,21 @@
 use crate::ghauth::{self, AccessTokenPollError};
 use log::*;
-use reqwest::Client;
 use std::{
     collections::HashMap,
     io::{ErrorKind, Write},
     process::{Command, Stdio},
 };
+use ureq::Agent;
 
-pub async fn fetch_creds(
+pub fn fetch_creds(
     output: &mut HashMap<String, String>,
     no_clip: bool,
     no_open_url: bool,
     quied: bool,
 ) {
     debug!("Fetching credentials...");
-    let client = Client::new();
-    let device_code = ghauth::get_device_code(&client).await.unwrap();
+    let agent = Agent::new_with_defaults();
+    let device_code = ghauth::get_device_code(&agent).unwrap();
 
     if !quied {
         eprintln!("Go to the link below and enter in the device code");
@@ -30,15 +30,15 @@ pub async fn fetch_creds(
     }
 
     let access_token = loop {
-        break match ghauth::poll_for_access_token(&client, &device_code).await {
+        break match ghauth::poll_for_access_token(&agent, &device_code) {
             Ok(token) => token,
             Err(err) => match err {
                 AccessTokenPollError::DeviceCodeExpired => {
                     info!("Device code expired");
                     continue;
                 }
-                AccessTokenPollError::Reqwest(err) => {
-                    panic!("Request to Github failed: {}", err);
+                e => {
+                    panic!("Request to Github failed: {}", e);
                 }
             },
         };

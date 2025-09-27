@@ -1,12 +1,11 @@
 static OAUTH_CLIENT_ID: &str = "71c898ad634b388e6614";
 static OAUTH_SCOPE: &str = "repo";
 
-use log::debug;
-use reqwest::StatusCode;
+use log::{debug, error};
 use serde::Deserialize;
-use std::fmt::Formatter;
+use std::thread::sleep;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use std::{error::Error, fmt, fmt::Display, thread::sleep};
+use thiserror::Error;
 
 #[derive(Deserialize, Debug)]
 pub struct DeviceCode {
@@ -36,13 +35,6 @@ pub struct AccessToken {
     pub scope: String,
 }
 
-#[derive(Deserialize)]
-pub struct GithubError {
-    pub error: String,
-    pub error_description: String,
-    pub error_uri: String,
-}
-
 pub fn epoch_time() -> u64 {
     let start = SystemTime::now();
     let since_the_epoch = start
@@ -52,26 +44,16 @@ pub fn epoch_time() -> u64 {
     since_the_epoch.as_secs()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AccessTokenPollError {
+    #[error("The device code has expired")]
     DeviceCodeExpired,
-    Reqwest(reqwest::Error),
-}
-impl Display for AccessTokenPollError {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        match &self {
-            AccessTokenPollError::DeviceCodeExpired => fmt.write_str("The device code has expired"),
-            AccessTokenPollError::Reqwest(err) => {
-                fmt.write_fmt(format_args!("Polling github failed. {}", err))
-            }
-        }
-    }
+    #[error("Polling github failed. {0}")]
+    Ureq(#[from] ureq::Error),
 }
 
-impl Error for AccessTokenPollError {}
-
-pub async fn poll_for_access_token(
-    client: &reqwest::Client,
+pub fn poll_for_access_token(
+    agent: &ureq::Agent,
     device_code: &DeviceCode,
 ) -> Result<AccessToken, AccessTokenPollError> {
     let form_params = [
@@ -81,50 +63,45 @@ pub async fn poll_for_access_token(
         ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
     ];
 
-    loop {
+    Ok(loop {
         if device_code.expired() {
             return Err(AccessTokenPollError::DeviceCodeExpired);
         }
 
         sleep(Duration::from_secs(device_code.interval));
 
-        let request = client
+        let mut response = agent
             .post("https://github.com/login/oauth/access_token")
-            .form(&form_params)
-            .header("Accept", "application/json");
+            .header("Accept", "application/json")
+            .send_form(form_params)?;
 
-        break match request.send().await {
-            Ok(response) => {
-                match response.json().await {
-                    Ok(token) => Ok(token),
-                    Err(e) => {
-                        panic!("gherror status:{:?} {}", e.status(), e);
-                        continue;
-                    } //FIXME: Github doesn't set a status code so we threat all parser errors as 'authorization_pending'
-                }
+        if response.status() == 404 {
+            continue;
+        }
+        match response.body_mut().read_json() {
+            Ok(token) => break token,
+            Err(e) => {
+                let string_response = response.body_mut().read_to_string()?;
+                error!(
+                    "Invalid response received from github.\n{}",
+                    string_response
+                );
+                return Err(e.into());
             }
-            Err(err) => {
-                if err.status().unwrap_or(StatusCode::OK) == 404 {
-                    continue;
-                }
-
-                Err(AccessTokenPollError::Reqwest(err))
-            }
-        };
-    }
+        }
+    })
 }
 
-pub async fn get_device_code(client: &reqwest::Client) -> Result<DeviceCode, reqwest::Error> {
+pub fn get_device_code(agent: &ureq::Agent) -> Result<DeviceCode, ureq::Error> {
     debug!("get_device_code");
     let form_params = [("client_id", OAUTH_CLIENT_ID), ("scope", OAUTH_SCOPE)];
 
-    let request = client
+    let mut response = agent
         .post("https://github.com/login/device/code")
-        .form(&form_params)
-        .header("Accept", "application/json");
+        .header("Accept", "application/json")
+        .send_form(form_params)?;
 
-    let response = request.send().await?;
-    let mut device_code: DeviceCode = response.json().await?;
+    let mut device_code: DeviceCode = response.body_mut().read_json()?;
 
     device_code.time = epoch_time();
     debug!("device_code: {:?}", device_code);
