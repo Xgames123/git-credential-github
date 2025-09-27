@@ -75,15 +75,20 @@ pub fn poll_for_access_token(
             .header("Accept", "application/json")
             .send_form(form_params)?;
 
-        if response.status() == 404 {
-            continue;
-        }
+        debug!("poll status_code={}", response.status());
+
         match response.body_mut().read_json() {
             Ok(token) => break token,
             Err(e) => {
                 let string_response = response.body_mut().read_to_string()?;
+                if string_response.trim().len() == 0 {
+                    // Re-poll when we got an empty response
+                    continue;
+                }
+
                 error!(
-                    "Invalid response received from github.\n{}",
+                    "Invalid response with status {} received from github:\n{}",
+                    response.status(),
                     string_response
                 );
                 return Err(e.into());

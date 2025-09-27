@@ -5,8 +5,8 @@ use std::{collections::HashMap, fmt::Display, string::String};
 mod credhelper;
 mod flow;
 mod ghauth;
+mod logopts;
 mod params;
-mod verbosity;
 
 const PROMPT_SIZE: usize = 55;
 const GHLOGIN_BACKINGHELPER: &str = "GHLOGIN_BACKINGHELPER";
@@ -33,7 +33,7 @@ struct Cli {
     no_prompt: bool,
 
     #[command(flatten)]
-    verbosity: verbosity::Verbosity,
+    logopts: logopts::LogOpts,
 
     /// Disables opening the verification url in a browser
     #[arg(long)]
@@ -75,7 +75,8 @@ fn main() {
 
     stderrlog::new()
         .module(module_path!())
-        .verbosity(cli.verbosity.log_level())
+        .verbosity(cli.logopts.verbose as usize)
+        .quiet(cli.logopts.quiet)
         .init()
         .unwrap();
 
@@ -99,7 +100,7 @@ fn main() {
     debug!("params={:?}", params);
     debug!("operation={:?}", cli.operation);
 
-    if cli.operation == Operation::Get && !cli.no_prompt && !cli.verbosity.is_quied() {
+    if cli.operation == Operation::Get && !cli.no_prompt && !cli.logopts.quiet {
         print_prompt();
     }
 
@@ -117,19 +118,14 @@ fn main() {
             cli.auth,
             cli.no_clip,
             cli.no_open_url,
-            cli.verbosity.is_quied(),
+            cli.logopts.quiet,
             &backing_helper,
             &params,
         )
     } else {
         let mut output = HashMap::new();
         if cli.operation == Operation::Get {
-            flow::fetch_creds(
-                &mut output,
-                cli.no_clip,
-                cli.no_open_url,
-                cli.verbosity.is_quied(),
-            );
+            flow::fetch_creds(&mut output, cli.no_clip, cli.no_open_url, cli.logopts.quiet);
         }
 
         output
